@@ -11,4 +11,7 @@
     <option name="button2Url" value="" />
     <option name="customApplicationId" value="" />
   </component>
+  <component name="ProjectRootManager">
+    <output url="file://$PROJECT_DIR$/out" />
+  </component>
 </project>
