@@ -45,7 +45,6 @@
     } = $props()
 
     $effect(() => {
-        console.log($state.snapshot(question))
         console.log($state.snapshot(question.correct_answer))
     })
 

@@ -76,7 +76,6 @@
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
             localStorage.setItem("seen", JSON.stringify([]))
         }
-        console.log(data.questions)
         let bank: Question[] = (await data.questions)
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
             .filter(v => v.score_band_range_cd < currentScoreTarget + 1.5 && v.score_band_range_cd > currentScoreTarget - 1.5) // within score range
@@ -91,7 +90,6 @@
         let random = getRandomFromArray(bank)
         let val = null;
         while (true) {
-            console.log(random.external_id)
             val = await (await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
                 credentials: "omit",
                 headers: {
