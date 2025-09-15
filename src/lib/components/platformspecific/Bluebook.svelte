@@ -101,13 +101,13 @@
         </div>
     </div>
     <hr>
-    <div class="flex-1 flex flex-row flex-nowrap px-15 overflow-y-auto">
+    <div class="flex-1 flex flex-col lg:flex-row flex-nowrap px-15 overflow-y-auto">
         {#if question.stimulus}
-            <div class="flex-1 pr-15 py-15 overflow-y-auto flex flex-col items-center">
+            <div class="lg:flex-1 lg:pr-15 py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
                 {@html question.stimulus}
             </div>
         {/if}
-        <div class="{!question.stimulus ? 'max-w-160 mx-auto' : 'pl-15 border-l-2'} overflow-y-auto py-15 flex-1">
+        <div class="{!question.stimulus ? 'max-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
             <div class="flex flex-col flex-nowrap">
                 <div class="flex flex-row font-sans items-center justify-center border-b-2">
                     <div class="px-2 h-8 bg-black text-white flex items-center justify-center">
