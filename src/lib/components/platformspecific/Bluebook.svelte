@@ -45,6 +45,7 @@
     } = $props()
 
     $effect(() => {
+        console.log($state.snapshot(question))
         console.log($state.snapshot(question.correct_answer))
     })
 
@@ -102,25 +103,27 @@
     </div>
     <hr>
     <div class="flex-1 flex flex-row flex-nowrap px-15 overflow-y-auto">
-        <div class="flex-1 pr-15 py-15 overflow-y-auto flex flex-col items-center">
-            {@html question.stimulus}
-        </div>
-        <div class="{!question.stimulus ? 'max-w-160' : 'pl-15 border-l-2'} overflow-y-auto py-15 flex-1">
+        {#if question.stimulus}
+            <div class="flex-1 pr-15 py-15 overflow-y-auto flex flex-col items-center">
+                {@html question.stimulus}
+            </div>
+        {/if}
+        <div class="{!question.stimulus ? 'max-w-160 mx-auto' : 'pl-15 border-l-2'} overflow-y-auto py-15 flex-1">
             <div class="flex flex-col flex-nowrap">
                 <div class="flex flex-row font-sans items-center justify-center border-b-2">
                     <div class="px-2 h-8 bg-black text-white flex items-center justify-center">
                         {currentQuestionNumber}
                     </div>
                     <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
-                        <div class="text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center">
-                            <img src={bookmarkable} alt="boomarkable"/>
-                            <div>
-                                Mark for Review
-                            </div>
-                        </div>
-                        <button class="cursor-pointer p-0.5 text-xs line-through font-bold bg-white border-black border-2 rounded-md">
-                            ABC
-                        </button>
+<!--                        <div class="text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center">-->
+<!--                            <img src={bookmarkable} alt="boomarkable"/>-->
+<!--                            <div>-->
+<!--                                Mark for Review-->
+<!--                            </div>-->
+<!--                        </div>-->
+<!--                        <button class="cursor-pointer p-0.5 text-xs line-through font-bold bg-white border-black border-2 rounded-md">-->
+<!--                            ABC-->
+<!--                        </button>-->
                     </div>
                 </div>
                 <div class="py-3">
@@ -152,10 +155,10 @@
                             <b>{questionOutside.difficulty === 'E' ? 'easy' : questionOutside.difficulty === 'M' ? 'medium' : 'hard'}</b>
                             difficulty (CB level of <b>{questionOutside.score_band_range_cd}</b>)
                         </div>
-                        <div class="p-2 bg-yellow-400 rounded-2xl">
-                            Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no
-                            money in having you get a good score the first time around.
-                        </div>
+<!--                        <div class="p-2 bg-yellow-400 rounded-2xl">-->
+<!--                            Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no-->
+<!--                            money in having you get a good score the first time around.-->
+<!--                        </div>-->
                         <div class="p-2 text-base flex flex-col gap-3">
                             {@html question.rationale}
                         </div>

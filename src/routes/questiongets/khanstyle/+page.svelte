@@ -87,7 +87,17 @@
             await alert("Out of questions", "You have reached the end of your selected questions.")
         }
         let random = getRandomFromArray(bank)
-        currentQuestion = await (await fetch(`/get/question?id=${random.external_id}`)).json()
+        let val = null;
+        while (true) {
+            console.log(random.external_id)
+            val = await (await fetch(`/get/question?id=${random.external_id}`)).json()
+            if (val?.type !== 'mcq') { // no support for gridins
+                random = getRandomFromArray(bank)
+                continue
+            };
+            currentQuestion = val
+            break;
+        }
         currentQuestionOutside = random
         currentQuestionNumber++;
         selectedOption = undefined
