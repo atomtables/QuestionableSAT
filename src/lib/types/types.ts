@@ -31,3 +31,23 @@ export type Question = {
     primary_class_cd: string, // 3 letter code about whic topic
     difficulty: 'E' | 'M' | 'H' // easy, medium, hard
 }
+export type QuestionDetail = {
+    vaultId: string, // unknown
+    keys: string[], // answer choice id
+    rationale: string, // formatted html
+    origin: string, // unknown
+    stem: string, // question
+    externalid: string, // id that got you here
+    stimulus: string, // formatted html of the question text
+    templateclusterid: string, // unknown
+    parenttemplatename: string, // unknown, might have to do with topic
+    parenttemplateid: string // unknown, ""
+    type: string, // mcq
+    position: number, // unknown might be question position on a test?,
+    templateclustername: string, // unknown,
+    answerOptions: {
+        id: string, // option id
+        content: string // html formatted option
+    }[],
+    correct_answer: string // correct answer letter but no letters used, use keys
+}

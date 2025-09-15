@@ -6,4 +6,35 @@
         font-family: 'Noto Serif', serif;
         @apply from-blue-400 to-blue-200 bg-gradient-to-br min-h-screen flex flex-col
     }
+
+    table {
+        @apply my-4
+    }
+
+    th, td {
+        @apply p-2
+    }
+
+    td:not(:first-child) {
+        @apply border-l-2
+    }
+
+    thead {
+        vertical-align: bottom;
+        @apply border-b-2
+    }
+
+    tbody {
+        vertical-align: top;
+    }
+
+    tbody > tr {
+        @apply border-t-2
+    }
+
+    caption {
+        caption-side: top;
+        text-align: left;
+        @apply font-semibold
+    }
 }

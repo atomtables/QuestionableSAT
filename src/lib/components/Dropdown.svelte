@@ -2,7 +2,7 @@
     import { slide } from 'svelte/transition';
     import Button from "$lib/components/Button.svelte";
 
-    let { items, onselect: onSelect, class: buttonClass, buttonText, direction, children } = $props();
+    let { items, onselect: onSelect, class: buttonClass = "", direction, children, ignoreStyling = false } = $props();
     let open = $state(false);
 
     const toggle = () => (open = !open);
@@ -20,7 +20,8 @@
 <div class="relative inline-block">
     <Button
             transparent
-            class="{!children && '[&]:px-0 [&]:py-3'} grid place-items-center transition-colors {open && '!bg-neutral-400/50'} {buttonClass}"
+            resetStyling={ignoreStyling}
+            class="{!ignoreStyling && `${!children && '[&]:px-0 [&]:py-3'} grid place-items-center transition-colors ${open && '!bg-neutral-400/50'}`} {buttonClass}"
             onclick={toggle}
     >
         {#if children}
@@ -32,7 +33,7 @@
 
     {#if open}
         <div
-                class="absolute {getDirection()} z-50 py-1 min-w-max overflow-auto max-h-96 bg-slate-300 dark:bg-slate-700 shadow-md"
+                class="absolute {getDirection()} z-50 py-1 min-w-max overflow-auto max-h-96 bg-slate-300 shadow-md"
                 transition:slide={{ duration: 150 }}
         >
             {#each items as item, ind}

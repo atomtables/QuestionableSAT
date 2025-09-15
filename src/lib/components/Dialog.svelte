@@ -260,18 +260,18 @@
     }
 </script>
 
-<script>
+<script lang="ts">
     import Button from "$lib/components/Button.svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import {fade} from "svelte/transition";
     import {quadInOut} from "svelte/easing";
 
-    let {open, title, description, actions, children, loading} = $props();
+    let {open, title, description = "", actions = [], children = null, loading = false} = $props();
     const closeF = () => open = false;
 </script>
 
 {#if open}
-    <div class="fixed inset-0 z-50 flex items-center justify-center bg-neutral-950/50 backdrop-blur-sm text-white"
+    <div class="fixed inset-0 z-50000 flex items-center justify-center bg-neutral-950/50 backdrop-blur-sm text-white"
          transition:fade={{ delay: 50, duration: 150, easing: quadInOut }}>
         <div
                 class="bg-neutral-800 shadow-xl w-full min-w-md max-w-2xl mx-4"

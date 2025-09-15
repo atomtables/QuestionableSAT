@@ -41,11 +41,23 @@
     }
     let value = $state(0)
 
-    let startDiff: number = $state()
-    let maxTries = $state()
+    let startDiff: number = $state(1)
+    let maxTries = $state(0)
     let hideQuestions = $state(true)
-    let answerNumber: string = $state('')
+    let answerNumber: string = $state('15')
     const lookAt = $derived(answerNumber === null || !isNaN(parseInt(answerNumber)))
+    const viewedQuestions = $derived.by(() => {
+        let seenInSessions: string[];
+        try {
+            seenInSessions = JSON.parse(localStorage.getItem("seen"));
+            if (seenInSessions === null) throw new Error()
+        } catch {
+            seenInSessions = []
+            console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
+            localStorage.setItem("seen", JSON.stringify([]))
+        }
+        return seenInSessions
+    })
 </script>
 <div class="w-screen h-screen flex flex-col items-center justify-center backdrop-blur-2xl bg-neutral-900/50 text-white">
     {#await data.questions}
@@ -58,45 +70,45 @@
             </div>
             <div>
                 You have {filtered.length} questions available to go through right now,
-                out of which you have viewed 0.
+                out of which you have viewed {viewedQuestions.length}.
             </div>
             <div class="pt-4">
                 Preparation doesn't just have to be exactly like a test. You should choose the best way to prepare that'll
                 help you master the skill you're having trouble with.
             </div>
-            <div class="flex flex-col py-2">
-                <div class="text-2xl pb-2">
-                    Select your preferred method of preparation
-                </div>
-                <div class="flex flex-row justify-center items-center gap-2">
-                    <Input
-                            bind:value
-                            radioId={0}
-                            type="radio"
-                            class="flex flex-row w-min"
-                    />
-                    <div class="w-full">Answer questions one-by-one, getting progressively harder as you continue (recommended for specific topic practice)</div>
-                </div>
-                <div class="flex flex-row justify-center items-center gap-2">
-                    <Input
-                            bind:value
-                            radioId={1}
-                            type="radio"
-                            class="flex flex-row w-min"
-                    />
-                    <div class="w-full">View random questions from your selected set one-by-one (recommended for general/unspecific question sets)</div>
-                </div>
-                <div class="flex flex-row justify-center items-center gap-2">
-                    <Input
-                            bind:value
-                            radioId={2}
-                            type="radio"
-                            class="flex flex-row w-min"
-                    />
-                    <div class="w-full">View a set amount of questions at one time, going back and forth similar to a practice test.</div>
-                </div>
-            </div>
-            {#if value === 0}
+<!--            <div class="flex flex-col py-2">-->
+<!--                <div class="text-2xl pb-2">-->
+<!--                    Select your preferred method of preparation-->
+<!--                </div>-->
+<!--                <div class="flex flex-row justify-center items-center gap-2">-->
+<!--                    <Input-->
+<!--                            bind:value-->
+<!--                            radioId={0}-->
+<!--                            type="radio"-->
+<!--                            class="flex flex-row w-min"-->
+<!--                    />-->
+<!--                    <div class="w-full">Answer questions one-by-one, getting progressively harder as you continue (recommended for specific topic practice)</div>-->
+<!--                </div>-->
+<!--                <div class="flex flex-row justify-center items-center gap-2">-->
+<!--                    <Input-->
+<!--                            bind:value-->
+<!--                            radioId={1}-->
+<!--                            type="radio"-->
+<!--                            class="flex flex-row w-min"-->
+<!--                    />-->
+<!--                    <div class="w-full">View random questions from your selected set one-by-one (recommended for general/unspecific question sets)</div>-->
+<!--                </div>-->
+<!--                <div class="flex flex-row justify-center items-center gap-2">-->
+<!--                    <Input-->
+<!--                            bind:value-->
+<!--                            radioId={2}-->
+<!--                            type="radio"-->
+<!--                            class="flex flex-row w-min"-->
+<!--                    />-->
+<!--                    <div class="w-full">View a set amount of questions at one time, going back and forth similar to a practice test.</div>-->
+<!--                </div>-->
+<!--            </div>-->
+            <!--{#if value === 0}-->
                 <div class="flex flex-col bg-neutral-800/50 backdrop-blur-2xl p-2" transition:slide>
                     <div class="text-2xl font-bold pb-2">
                         Additional settings
@@ -135,10 +147,10 @@
                                 type="checkbox"
                                 class="flex flex-row w-min"
                         />
-                        <div class="w-full">Hide questions that have already previously been viewed.</div>
+                        <div class="w-full">Hide questions that have been seen in other sessions.</div>
                     </div>
                 </div>
-            {/if}
+            <!--{/if}-->
             <Button disabled={!lookAt} onclick={() => goto(`/questiongets/khanstyle?start=${['e','m','h'][startDiff]}&tries=${maxTries}&ignoreViewed=${hideQuestions}&streak=${answerNumber}`)}>Let's do this!</Button>
         </div>
     {/await}

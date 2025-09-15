@@ -17,7 +17,7 @@
     } = $props();
 
     onMount(() => {
-        value = defaultValue
+        if (defaultValue) value = defaultValue
     })
 
     let isFocused = $state(false);

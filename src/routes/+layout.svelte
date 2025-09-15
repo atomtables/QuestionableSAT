@@ -26,12 +26,5 @@
 	<div class="text-white font-bold text-2xl">
 		QuestionableSAT
 	</div>
-	<div class="flex flex-row flex-nowrap gap-2">
-		{#each data.lookup.lookupData?.assessment as {id, text}}
-			<Button>
-				{text}
-			</Button>
-		{/each}
-	</div>
 </div>
 {@render children?.()}
