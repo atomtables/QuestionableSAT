@@ -19,8 +19,11 @@
 </script>
 
 <div class="flex flex-col gap-5 items-center justify-center lg:min-h-screen bg-neutral-900/30 backdrop-blur-2xl">
+    <div class="block lg:hidden h-[64px]">
+
+    </div>
     <div class="flex flex-col lg:flex-row gap-5 items-center">
-        <div class="flex flex-col p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1">
+        <div class="flex flex-col lg:max-h-120 lg:overflow-y-scroll p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1">
             <div class="text-lg font-bold font-sans border-2 rounded-full w-8 h-8 flex items-center justify-center">
                 1
             </div>
@@ -32,7 +35,7 @@
             </div>
             <Input name="Exam" type="dropdown" bind:value={selectedDetails.test} class="w-full" elements={data.lookup.lookupData?.assessment.map(a => a.text)} />
         </div>
-        <div class="flex flex-col p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1 transition-all duration-300 {typeof selectedDetails.test !== 'number' && 'opacity-50 touch-none pointer-events-none'}">
+        <div class="flex flex-col lg:max-h-120 lg:overflow-y-scroll p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1 transition-all duration-300 {typeof selectedDetails.test !== 'number' && 'opacity-50 touch-none pointer-events-none'}">
             <div class="text-lg font-bold font-sans border-2 rounded-full w-8 h-8 flex items-center justify-center">
                 2
             </div>
@@ -65,7 +68,7 @@
                 </div>
             {/if}
         </div>
-        <div class="flex flex-col p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1 {typeof selectedDetails.section !== 'number' && 'opacity-50 touch-none pointer-events-none'}">
+        <div class="flex flex-col lg:max-h-120 lg:overflow-y-scroll p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1 {typeof selectedDetails.section !== 'number' && 'opacity-50 touch-none pointer-events-none'}">
             <div class="text-lg font-bold font-sans border-2 rounded-full w-8 h-8 flex items-center justify-center">
                 3
             </div>
@@ -112,7 +115,7 @@
         </div>
     </div>
     {#if selectedDetails.topics && Object.values(selectedDetails.topics).some(v => v === true)}
-        <div transition:slide>
+        <div transition:slide class="pb-5">
             <Button onclick={() => goto("/questiongets")}>I'm ready.</Button>
         </div>
     {/if}
