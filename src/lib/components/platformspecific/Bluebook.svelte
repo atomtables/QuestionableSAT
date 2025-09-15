@@ -57,7 +57,39 @@
             }
         }
     })
+
+    let enableAnnotation = $state(false)
+    function onselection() {
+        if (enableAnnotation) {
+            const selection = document.getSelection();
+            if (selection.rangeCount > 0 && !selection.isCollapsed) {
+                const range = selection.getRangeAt(0);
+
+                const span = document.createElement("span");
+                span.classList.add("bg-yellow-500/50");
+                span.classList.add("hover:bg-yellow-500");
+                span.classList.add("cursor-pointer");
+                span.onclick = (e) => {
+                    const parent = span.parentNode;
+                    while (span.firstChild) {
+                        parent.insertBefore(span.firstChild, span);
+                    }
+                    parent.removeChild(span);
+                }
+                const selectedContent = range.extractContents();
+                span.appendChild(selectedContent);
+
+                range.insertNode(span);
+
+                selection.removeAllRanges();
+            }
+        }
+    }
 </script>
+
+<svelte:window onmouseupcapture={onselection} ontouchendcapture={onselection} />
+
+<div data-dummy class="bg-yellow-500/50 hover:bg-yellow-500 cursor-pointer"></div>
 
 <div class="w-screen h-screen z-1000 flex flex-nowrap flex-col bg-white">
     <div class="header flex flex-row justify-between font-sans px-4 py-3 shrink-0 bg-blue-100">
@@ -83,9 +115,9 @@
             </div>
             <div class="flex-1 flex items-center justify-center flex-row gap-3">
                 {#if !history}
-                    <button class="flex flex-col items-center justify-center text-sm">
+                    <button onclick={() => enableAnnotation = !enableAnnotation} class="cursor-pointer flex flex-col items-center justify-center text-sm">
                         <img src={stylus} alt="pencil" class="invert w-6 h-6" />
-                        Annotate
+                        <span class="{enableAnnotation && 'underline'}">Annotate</span>
                     </button>
                     <Dropdown ignoreStyling
                               direction="right"
@@ -93,7 +125,7 @@
                               onselect={i => i === 0 && exitHandler()}>
                         <span class="flex! flex-col! items-center justify-center text-sm cursor-pointer">
                             <img src={more} alt="pencil" class="invert w-6 h-6" />
-                        <span>More</span>
+                            <span>More</span>
                         </span>
                     </Dropdown>
                 {/if}
@@ -114,12 +146,12 @@
                         {currentQuestionNumber}
                     </div>
                     <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
-<!--                        <div class="text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center">-->
-<!--                            <img src={bookmarkable} alt="boomarkable"/>-->
-<!--                            <div>-->
-<!--                                Mark for Review-->
-<!--                            </div>-->
-<!--                        </div>-->
+                        <div class="text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-none'}">
+                            <img src={bookmarkable} alt="boomarkable"/>
+                            <div>
+                                Mark for Review
+                            </div>
+                        </div>
 <!--                        <button class="cursor-pointer p-0.5 text-xs line-through font-bold bg-white border-black border-2 rounded-md">-->
 <!--                            ABC-->
 <!--                        </button>-->
