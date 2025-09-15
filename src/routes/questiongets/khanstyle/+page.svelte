@@ -76,6 +76,7 @@
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
             localStorage.setItem("seen", JSON.stringify([]))
         }
+        console.log(data.questions)
         let bank: Question[] = (await data.questions)
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
             .filter(v => v.score_band_range_cd < currentScoreTarget + 1.5 && v.score_band_range_cd > currentScoreTarget - 1.5) // within score range
@@ -85,16 +86,30 @@
         }
         if (bank.length < 1) {
             await alert("Out of questions", "You have reached the end of your selected questions.")
+            return
         }
         let random = getRandomFromArray(bank)
         let val = null;
         while (true) {
             console.log(random.external_id)
-            val = await (await fetch(`/get/question?id=${random.external_id}`)).json()
+            val = await (await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
+                credentials: "omit",
+                headers: {
+                    "Accept": "application/json, text/plain, */*",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "Content-Type": "application/json",
+                },
+                referrer: "https://satsuitequestionbank.collegeboard.org/",
+                body: JSON.stringify({
+                    external_id: random.external_id
+                }),
+                method: "POST",
+                mode: "cors"
+            })).json()
             if (val?.type !== 'mcq') { // no support for gridins
                 random = getRandomFromArray(bank)
                 continue
-            };
+            }
             currentQuestion = val
             break;
         }
@@ -109,7 +124,6 @@
             timerInt++;
             timer = `${Math.floor(timerInt / 60)}:${timerInt % 60 < 10 ? '0' + (timerInt % 60).toString() : (timerInt % 60).toString()}`
         }, 1000)
-        seenInSessions.push(currentQuestion.externalid)
     }
     async function submitHandler(): Promise<[boolean, number]> {
         let seenInSessions: string[];
@@ -126,6 +140,8 @@
             selected: currentQuestion.answerOptions[selectedOption].id,
             timeInt: timerInt
         }])
+        seenInSessions.push(currentQuestion.externalid)
+        localStorage.setItem("seen", JSON.stringify(seenInSessions))
         if (currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id)) {
             currentScoreTarget += scoreTargetIncrease
             currentStreak += 1
@@ -138,7 +154,6 @@
             currentStreak = 0
             return [false, tries]
         }
-        localStorage.setItem("seen", JSON.stringify(seenInSessions))
     }
     async function exit() {
         timetogo = true

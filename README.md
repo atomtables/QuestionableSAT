@@ -1,38 +1,23 @@
-# sv
+# QuestionableSAT
 
-Everything you need to build a Svelte project, powered by [`sv`](https://github.com/sveltejs/cli).
+A tool that gets questions from the CollegeBoard's SAT Suite Educator Question
+Bank and presents them in a way that is more configurable and more open than
+the CollegeBoard's built in practice tools.
 
-## Creating a project
+## why did i make this?
+I had to take the SAT and decided that making an app dedicated to helping
+with the SAT was probably a good way to procrastinate.
 
-If you're seeing this, you've probably already done this step. Congrats!
+Also I thought it would be a good way to practice when I had free time,
+since my previous strategy was to take questions from the question bank,
+have my dad put them in a PDF without answers, and time myself for each 
+question indivdiually, seeing if I got them right or wrong.
 
-```sh
-# create a new project in the current directory
-npx sv create
+## how do i run?
+`npm run build`
+`npm run preview`
+literally nothing more to it, it's a basic svelte static app.
 
-# create a new project in my-app
-npx sv create my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```sh
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```sh
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://svelte.dev/docs/kit/adapters) for your target environment.
+## contribute?
+please contribute with any additional things you would like fixed (if you're
+a techie type) or raise an issue please (if you're not into that life.)
