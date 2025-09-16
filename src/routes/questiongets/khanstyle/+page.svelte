@@ -3,13 +3,14 @@
     import {goto} from "$app/navigation";
     import Bluebook from "$lib/components/platformspecific/Bluebook.svelte";
     import Dialog from "$lib/components/Dialog.svelte";
-    import type {LookupData, Question, QuestionDetail} from "$lib/types/types";
+    import type {LookupData, Question, QuestionDetail, QuestionDetailMCQ} from "$lib/types/types";
     import { alert } from "$lib/components/Dialog.svelte"
     import {selectedDetails} from "$lib/clientstate/states.svelte";
     import Input from "$lib/components/Input.svelte";
     import Button from "$lib/components/Button.svelte";
     import {slide} from "svelte/transition";
     import Spinner from "$lib/components/Spinner.svelte";
+    import {loadMCQQuestionThroughJSON} from "$lib/helpers/loadjson";
 
     let {
         data
@@ -78,8 +79,9 @@
         }
         let bank: Question[] = (await data.questions)
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
-            .filter(v => v.score_band_range_cd < currentScoreTarget + 1.5 && v.score_band_range_cd > currentScoreTarget - 1.5) // within score range
+            .filter(v => v.score_band_range_cd < currentScoreTarget + 2 && v.score_band_range_cd > currentScoreTarget - 2) // within score range
             .filter(v => !currentQuestionHistory.some(x => x[0].externalid === v.external_id)) // ignore seen questions
+        console.log(bank)
         if (ignoreViewed) {
             bank = bank.filter(v => !seenInSessions.includes(v.external_id))
         }
@@ -90,7 +92,8 @@
         let random = getRandomFromArray(bank)
         let val = null;
         while (true) {
-            val = await (await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
+            console.log(random)
+            let res = await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
                 credentials: "omit",
                 headers: {
                     "Accept": "application/json, text/plain, */*",
@@ -99,14 +102,22 @@
                 },
                 referrer: "https://satsuitequestionbank.collegeboard.org/",
                 body: JSON.stringify({
-                    external_id: random.external_id
+                    external_id: random.external_id || random.uId
                 }),
                 method: "POST",
                 mode: "cors"
-            })).json()
-            if (val?.type !== 'mcq') { // no support for gridins
-                random = getRandomFromArray(bank)
-                continue
+            })
+            val = await (res).json()
+            if (!res.ok || val.type === undefined) {
+                // maybe we need to load in via json
+                if (random.ibn) {
+                    val = await loadMCQQuestionThroughJSON(random.ibn)
+                    if (val === null) {
+                        bank = bank.filter(v => v.uId !== random.uId)
+                        random = getRandomFromArray(bank)
+                        continue
+                    }
+                }
             }
             currentQuestion = val
             break;
@@ -132,22 +143,33 @@
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
             localStorage.setItem("seen", JSON.stringify([]))
         }
+        console.log(currentQuestion.keys, selectedOption)
         clearInterval(timerHandler)
         currentQuestionHistory.push([currentQuestion, currentQuestionOutside, {
-            correct: currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id),
-            selected: currentQuestion.answerOptions[selectedOption].id,
+            correct: currentQuestion.type === 'mcq' ?
+                currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) :
+                currentQuestion.keys.includes(selectedOption.toString()),
+            selected: currentQuestion.type === 'mcq' ?
+                currentQuestion.answerOptions[selectedOption].id :
+                selectedOption.toString(),
             timeInt: timerInt
         }])
         seenInSessions.push(currentQuestion.externalid)
         localStorage.setItem("seen", JSON.stringify(seenInSessions))
-        if (currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id)) {
+        if (currentQuestion.type === 'mcq' ?
+            currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) :
+            currentQuestion.keys.includes(selectedOption.toString())) {
             currentScoreTarget += scoreTargetIncrease
+            currentScoreTarget = Math.min(currentScoreTarget, 9)
             currentStreak += 1
             if (maxStreak && currentStreak >= maxStreak)
                 return [true, -1]
             return [true, 0]
         } else {
-            if (!decreased) currentScoreTarget -= scoreTargetIncrease
+            if (!decreased) {
+                currentScoreTarget -= scoreTargetIncrease
+                currentScoreTarget = Math.max(currentScoreTarget, 3)
+            }
             decreased = true
             currentStreak = 0
             return [false, tries]
@@ -181,7 +203,12 @@
     let currentlyReviewing = $state(null)
     let currentlyReviewed = $derived(currentlyReviewing !== null && currentlyReviewing + 1)
     let currentlyTimered = $derived(`${Math.floor(currentQuestionHistory[currentlyReviewing][2].timeInt / 60)}:${currentQuestionHistory[currentlyReviewing][2].timeInt % 60 < 10 ? '0' + (currentQuestionHistory[currentlyReviewing][2].timeInt % 60).toString() : (currentQuestionHistory[currentlyReviewing][2].timeInt % 60).toString()}`)
-    let currentlySelectedHistory = $derived(currentQuestionHistory[currentlyReviewing][0].answerOptions.findIndex(v => v.id === currentQuestionHistory[currentlyReviewing][2].selected))
+    let currentlySelectedHistory = $derived(
+        currentQuestionHistory[currentlyReviewing][0].type === 'mcq' ?
+        (currentQuestionHistory[currentlyReviewing][0] as QuestionDetailMCQ).answerOptions.findIndex(v => v.id === currentQuestionHistory[currentlyReviewing][2].selected) :
+            currentQuestionHistory[currentlyReviewing][2].selected
+    )
+    let statusThing = $derived(`targeting ${currentScoreTarget}`)
 </script>
 
 {#if timetogo}
@@ -198,9 +225,10 @@
                     exitHandler={() => null}
                     total={null}
                     history={{
-                selected: currentQuestionHistory[currentlyReviewing][2].selected,
-                exit: () => currentlyReviewing = null
-            }}
+                        selected: currentQuestionHistory[currentlyReviewing][2].selected,
+                        exit: () => currentlyReviewing = null
+                    }}
+                    bind:status={statusThing}
             />
         </div>
     {:else}
@@ -256,6 +284,7 @@
                     exitHandler={exit}
                     total={null}
                     history={null}
+                    bind:status={statusThing}
             />
         </div>
     {:else}

@@ -31,23 +31,54 @@ export type Question = {
     primary_class_cd: string, // 3 letter code about whic topic
     difficulty: 'E' | 'M' | 'H' // easy, medium, hard
 }
-export type QuestionDetail = {
-    vaultId: string, // unknown
-    keys: string[], // answer choice id
-    rationale: string, // formatted html
-    origin: string, // unknown
-    stem: string, // question
-    externalid: string, // id that got you here
-    stimulus: string, // formatted html of the question text
-    templateclusterid: string, // unknown
-    parenttemplatename: string, // unknown, might have to do with topic
-    parenttemplateid: string // unknown, ""
-    type: string, // mcq
-    position: number, // unknown might be question position on a test?,
-    templateclustername: string, // unknown,
+
+export type QuestionDetail = QuestionDetailMCQ | QuestionDetailSPR
+
+export type QuestionDetailMCQ = {
+    // unknown
+    vaultId: string,
+    // answer choice id
+    keys: string[],
+    // formatted html
+    rationale: string,
+    // unknown not used in math
+    origin: string,
+    // question
+    stem: string,
+    // id that got you here
+    externalid: string,
+    // formatted html of the question text
+    stimulus: string,
+    // unknown not used in math
+    templateclusterid: string,
+    // unknown, might have to do with topic not used in math
+    parenttemplatename: string,
+    // unknown, "" not used in math
+    parenttemplateid: string
+    // mcq
+    type: "mcq",
+    // unknown might be question position on a test?, not used in math
+    position: number,
+    // unknown, not used for math
+    templateclustername: string,
     answerOptions: {
-        id: string, // option id
-        content: string // html formatted option
+        // option id
+        id: string,
+        // html formatted option
+        content: string
     }[],
-    correct_answer: string // correct answer letter but no letters used, use keys
+    // correct answer letter but no letters used, use keys
+    correct_answer: string
+}
+export type QuestionDetailSPR = {
+    type: "spr",
+    // question with mathtype
+    stem: string,
+    // possible correct answers
+    keys: string[],
+    // explanation with mathtype
+    rationale: string,
+    externalid: string,
+    // applicable answers
+    correct_answer: string[]
 }

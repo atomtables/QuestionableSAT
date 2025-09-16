@@ -12,7 +12,7 @@
     onMount(() => {
         selectedDetails.topics = {}
         selectedDetails.subtopics = {}
-        selectedDetails.ignoreLive = false
+        selectedDetails.ignoreLive = true
     })
 
     let lastOpened = $state({})

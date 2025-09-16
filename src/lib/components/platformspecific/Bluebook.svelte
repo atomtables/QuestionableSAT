@@ -27,12 +27,13 @@
         timer = $bindable(),
         questionOutside = $bindable(),
         exitHandler,
-        history = null
+        history = null,
+        status = $bindable()
     }: {
         question: QuestionDetail,
         currentQuestionNumber: number,
         total: number | null,
-        selectedOption: number,
+        selectedOption: number | string,
         submitHandler: () => Promise<[boolean, number | null]>,
         nextQuestionHandler: () => Promise<void>,
         timer: string,
@@ -41,11 +42,18 @@
         history: {
             selected: string,
             exit: () => void
-        } | null
+        } | null,
+        status: string
     } = $props()
 
     $effect(() => {
         console.log($state.snapshot(question.correct_answer))
+    })
+
+    $effect(() => {
+        if (question) {
+            eliminated = {}
+        }
     })
 
     onMount(() => {
@@ -65,6 +73,15 @@
             if (selection.rangeCount > 0 && !selection.isCollapsed) {
                 const range = selection.getRangeAt(0);
 
+                let x = range.commonAncestorContainer;
+                while (x) {
+                    if (x.nodeType === Node.ELEMENT_NODE && (x as Element).classList.contains("highlightable-portion")) {
+                        break;
+                    }
+                    x = x.parentNode;
+                }
+                if (x === null) return;
+
                 const span = document.createElement("span");
                 span.classList.add("bg-yellow-500/50");
                 span.classList.add("hover:bg-yellow-500");
@@ -83,6 +100,56 @@
 
                 selection.removeAllRanges();
             }
+        }
+    }
+
+    let enableStriking = $state(false)
+    let eliminated = $state({})
+
+    function mathTypeParser(mathML: string) {
+        try {
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(mathML, "text/html");
+
+            const mfenceds = doc.getElementsByTagName("mfenced");
+
+            // Convert live HTMLCollection to array
+            Array.from(mfenceds).forEach(mfenced => {
+                const open = mfenced.getAttribute("open") || "(";
+                const close = mfenced.getAttribute("close") || ")";
+                const separators = (mfenced.getAttribute("separators") || ",").split("");
+
+                const children = Array.from(mfenced.children);
+                const mrow = doc.createElement("mrow");
+
+                // Add opening fence
+                const moOpen = doc.createElement("mo");
+                moOpen.textContent = open;
+                mrow.appendChild(moOpen);
+
+                // Interleave children with separators
+                children.forEach((child, i) => {
+                    mrow.appendChild(child.cloneNode(true));
+
+                    if (i < children.length - 1) {
+                        const moSep = doc.createElement("mo");
+                        moSep.textContent = separators[i] || separators[separators.length - 1];
+                        mrow.appendChild(moSep);
+                    }
+                });
+
+                // Add closing fence
+                const moClose = doc.createElement("mo");
+                moClose.textContent = close;
+                mrow.appendChild(moClose);
+
+                // Replace mfenced with mrow
+                mfenced.parentNode.replaceChild(mrow, mfenced);
+            });
+
+            return new XMLSerializer().serializeToString(doc.documentElement);
+        } catch {
+            return mathML
         }
     }
 </script>
@@ -111,7 +178,7 @@
         </div>
         <div class="text-right flex flex-col items-right gap-1">
             <div class="text-xs font-bold">
-                100%
+                {status || '100%'}
             </div>
             <div class="flex-1 flex items-center justify-center flex-row gap-3">
                 {#if !history}
@@ -134,48 +201,75 @@
     </div>
     <hr>
     <div class="flex-1 flex flex-col lg:flex-row flex-nowrap px-15 overflow-y-auto">
-        {#if question.stimulus}
-            <div class="lg:flex-1 lg:pr-15 py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
+        {#if question.type === 'mcq' && question.stimulus}
+            <div class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
                 {@html question.stimulus}
             </div>
         {/if}
-        <div class="{!question.stimulus ? 'max-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
+        <div class="{!(question.type === 'mcq' && question.stimulus) ? 'w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
             <div class="flex flex-col flex-nowrap">
                 <div class="flex flex-row font-sans items-center justify-center border-b-2">
                     <div class="px-2 h-8 bg-black text-white flex items-center justify-center">
                         {currentQuestionNumber}
                     </div>
                     <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
-                        <div class="text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-none'}">
+                        <div class="text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-not-allowed'}">
                             <img src={bookmarkable} alt="boomarkable"/>
                             <div>
                                 Mark for Review
                             </div>
                         </div>
-<!--                        <button class="cursor-pointer p-0.5 text-xs line-through font-bold bg-white border-black border-2 rounded-md">-->
-<!--                            ABC-->
-<!--                        </button>-->
+                        <button onclick={() => enableStriking = !enableStriking} class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking && '!bg-blue-800 text-white'} border-black border-2 rounded-md">
+                            ABC
+                        </button>
                     </div>
                 </div>
-                <div class="py-3">
-                    {@html question.stem}
+                <div class="py-3 highlightable-portion">
+                    {@html mathTypeParser(question.stem)}
                 </div>
                 <div class="flex flex-col gap-4">
-                    {#each question.answerOptions as { id, content }, i}
-                        <button
-                                onclick={() => (!history && (selectedOption = i))}
-                                class="flex flex-row items-center w-full
+                    {#if question.type === 'mcq'}
+                        {#each question.answerOptions as { id, content }, i}
+                            <div class="flex flex-row">
+                                <button
+                                        onclick={() => (!history && (!enableStriking || !eliminated[id]) && (selectedOption = i))}
+                                        class="flex flex-row items-center w-full relative {eliminated[id] && enableStriking && 'before:-ml-4 before:border-1 before:w-full opacity-50 !cursor-not-allowed before:top-1/2 before:-translate-y-1/2 before:absolute'}
                                 py-3 px-4 border-2 border-neutral-500 gap-5
                                 rounded-lg cursor-pointer hover:bg-blue-300/50 {selectedOption === i && '!bg-blue-800 text-white'}
                                 transition-colors {isCorrect === id && '!bg-green-800 text-white'} {isWrong === id && '!bg-red-800 text-white'}">
-                            <span class="font-sans flex items-center justify-center w-7 h-7 font-bold border-2 rounded-full grow-0 shrink-0 select-none">
-                                {['A', 'B', 'C', 'D', 'E', 'F'][i]}
-                            </span>
-                            <span class="text-left">
-                                {@html content}
-                            </span>
-                        </button>
-                    {/each}
+                                <span class="font-sans flex items-center justify-center w-7 h-7 font-bold border-2 rounded-full grow-0 shrink-0 select-none">
+                                    {['A', 'B', 'C', 'D', 'E', 'F'][i]}
+                                </span>
+                                    <span class="text-left">
+                                    {@html mathTypeParser(content)}
+                                </span>
+                                </button>
+                                {#if enableStriking}
+                                    <button
+                                            onclick={() => (eliminated[id] = !eliminated[id])}
+                                            class="flex flex-row items-center justify-center w-16
+                                    rounded-lg cursor-pointer group">
+                                    <span class="transition-colors group-hover:bg-blue-500/50 relative before:border-1 before:w-3 before:absolute font-sans flex items-center justify-center w-5 h-5 text-xs border-2 rounded-full grow-0 shrink-0 select-none">
+                                        {['A', 'B', 'C', 'D', 'E', 'F'][i]}
+                                    </span>
+                                    </button>
+                                {/if}
+                            </div>
+                        {/each}
+                    {:else}
+                        <div class="flex flex-row items-center gap-2">
+                            <div class="border-2 rounded-2xl w-24 p-2 font-mono">
+                                <input disabled={shown} type="text" class="p-2 w-full border-b-2" bind:value={selectedOption}>
+                            </div>
+                            {#if shown}
+                                {#if isCorrect === selectedOption}
+                                    <div class="text-green-700">Correct!</div>
+                                {:else}
+                                    <div class="text-red-500">Incorrect.</div>
+                                {/if}
+                            {/if}
+                        </div>
+                    {/if}
                 </div>
                 {#if shown}
                     <div class="flex flex-col p-2 bg-blue-50 rounded-2xl my-4">
@@ -191,7 +285,7 @@
 <!--                            money in having you get a good score the first time around.-->
 <!--                        </div>-->
                         <div class="p-2 text-base flex flex-col gap-3">
-                            {@html question.rationale}
+                            {@html mathTypeParser(question.rationale)}
                         </div>
                     </div>
                 {/if}
@@ -220,19 +314,30 @@
                 let [correct, max] = await submitHandler()
                 maxTries = max
                 if (correct) {
-                    isCorrect = question.answerOptions[selectedOption].id
+                    console.log("correct")
+                    if (question.type === 'mcq') {
+                        isCorrect = question.answerOptions[selectedOption].id
+                    } else {
+                        isCorrect = selectedOption.toString()
+                    }
                     if (max === -1) {
                         timeToExit = true
                     }
                     shown = true
                 } else {
+                    console.log("incorrect")
                     if (currentTries >= maxTries) {
-                        isWrong = question.answerOptions[selectedOption].id
-                        isCorrect = question.keys[0]
+                        if (question.type === 'mcq') {
+                            isWrong = question.answerOptions[selectedOption].id
+                            isCorrect = question.keys[0]
+                        } else {
+                            isWrong = selectedOption.toString()
+                            isCorrect = null
+                        }
                         shown = true
                     } else {
                         currentTries++;
-                        await alert("Incorrect answer", `You have ${maxTries - currentTries} ${max - currentTries + 1 === 1 ? 'try' : 'tries'} remaining.`)
+                        await alert("Incorrect answer", `You have ${maxTries - currentTries + 1} ${max - currentTries + 1 === 1 ? 'try' : 'tries'} remaining.`)
                     }
                 }
                 oldHideTimer = hideTimer
