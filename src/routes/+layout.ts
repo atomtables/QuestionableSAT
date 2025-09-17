@@ -1,6 +1,6 @@
 import type {LookupData} from "$lib/types/types";
 
-export const ssr = false
+export const prerender = true
 export const load: any = async ({fetch}) => {
     const lookupRes = await (await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/lookup", {
         "credentials": "omit",

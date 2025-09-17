@@ -13,6 +13,7 @@
         action = null,
         elements = [],
         radioId = null,
+        radioGroup = null,
         ...prop
     } = $props();
 
@@ -93,13 +94,14 @@
             <input
                     id={id}
                     type="radio"
-                    name="default"
-                    onclick={() => (value = radioId, action?.(defaultValue))}
+                    name={radioGroup || "default"}
+                    onclick={() => (value = radioId, action?.(radioId))}
                     class="peer opacity-0 p-1 absolute z-10 cursor-pointer"
                     {...prop}
             />
-            <button onclick={async () => (await action?.(defaultValue), value = defaultValue)} class="w-4 h-4 transition-all duration-250
+            <button onclick={async () => (await action?.(radioId), value = radioId)} class="w-4 h-4 transition-all duration-250
                 border-2 border-gray-300 peer-checked:border-blue-600 peer-checked:bg-blue-600
+                {value === radioId && '!border-blue-600 !bg-blue-600'}
                 peer-disabled:opacity-50 peer-disabled:cursor-not-allowed
                 rounded-full flex items-center justify-center group-hover:bg-blue-600/40 cursor-pointer">
                 {#if value === radioId}

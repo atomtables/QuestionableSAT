@@ -1,5 +1,5 @@
 <script lang="ts">
-    import { wait } from "$lib/components/Dialog.svelte";
+    import Dialog, { wait } from "$lib/components/Dialog.svelte";
     import {onMount} from "svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import type {LookupData, Question} from "$lib/types/types";
@@ -8,6 +8,7 @@
     import { slide } from "svelte/transition";
     import Button from "$lib/components/Button.svelte";
     import {goto} from "$app/navigation";
+    import Collapsible from "$lib/components/Collapsible.svelte";
 
     let {
         data
@@ -19,7 +20,6 @@
     } = $props();
 
     onMount(() => {
-        wait(data.questions, "Loading in questions...", "This shouldn't take too long.")
     })
     const lookupData = $derived(Object.values(data.lookup.lookupData.domain)[selectedDetails.section])
     const appliedFilters = (question: Question) => {
@@ -46,7 +46,7 @@
     let hideQuestions = $state(true)
     let answerNumber: string = $state('15')
     const lookAt = $derived(answerNumber === null || !isNaN(parseInt(answerNumber)))
-    const viewedQuestions = $derived.by(() => {
+    let viewedQuestions = $derived.by(() => {
         let seenInSessions: string[];
         try {
             seenInSessions = JSON.parse(localStorage.getItem("seen"));
@@ -58,100 +58,118 @@
         }
         return seenInSessions
     })
+
+    let openResetDialog = $state(false);
 </script>
-<div class="w-screen h-screen flex flex-col items-center justify-center backdrop-blur-2xl bg-neutral-900/50 text-white">
-    {#await data.questions}
-        <Spinner/>
-    {:then questions}
-        {@const filtered = questions.filter(v => appliedFilters(v))}
-        <div class="flex flex-col p-5 gap-2 m-5 w-2/3 backdrop-blur-2xl bg-blue-700/50">
-            <div class="text-4xl font-bold">
-                Good choice! Loaded your questions.
+
+<div class="flex flex-col w-screen h-screen items-center justify-center bg-neutral-900/50 backdrop-blur-sm p-10 bg-opacity-50 text-white min-h-screen">
+    <div class="max-w-3xl mx-auto w-full space-y-8">
+        <div class="flex flex-col items-center gap-5">
+            <div class="font-bold font-sans">
+                QuestionableSAT
             </div>
-            <div>
-                You have {filtered.length} questions available to go through right now,
-                out of which you have viewed {viewedQuestions.length}.
-            </div>
-            <div class="pt-4">
-                Preparation doesn't just have to be exactly like a test. You should choose the best way to prepare that'll
-                help you master the skill you're having trouble with.
-            </div>
-<!--            <div class="flex flex-col py-2">-->
-<!--                <div class="text-2xl pb-2">-->
-<!--                    Select your preferred method of preparation-->
-<!--                </div>-->
-<!--                <div class="flex flex-row justify-center items-center gap-2">-->
-<!--                    <Input-->
-<!--                            bind:value-->
-<!--                            radioId={0}-->
-<!--                            type="radio"-->
-<!--                            class="flex flex-row w-min"-->
-<!--                    />-->
-<!--                    <div class="w-full">Answer questions one-by-one, getting progressively harder as you continue (recommended for specific topic practice)</div>-->
-<!--                </div>-->
-<!--                <div class="flex flex-row justify-center items-center gap-2">-->
-<!--                    <Input-->
-<!--                            bind:value-->
-<!--                            radioId={1}-->
-<!--                            type="radio"-->
-<!--                            class="flex flex-row w-min"-->
-<!--                    />-->
-<!--                    <div class="w-full">View random questions from your selected set one-by-one (recommended for general/unspecific question sets)</div>-->
-<!--                </div>-->
-<!--                <div class="flex flex-row justify-center items-center gap-2">-->
-<!--                    <Input-->
-<!--                            bind:value-->
-<!--                            radioId={2}-->
-<!--                            type="radio"-->
-<!--                            class="flex flex-row w-min"-->
-<!--                    />-->
-<!--                    <div class="w-full">View a set amount of questions at one time, going back and forth similar to a practice test.</div>-->
-<!--                </div>-->
-<!--            </div>-->
-            <!--{#if value === 0}-->
-                <div class="flex flex-col bg-neutral-800/50 backdrop-blur-2xl p-2" transition:slide>
-                    <div class="text-2xl font-bold pb-2">
-                        Additional settings
-                    </div>
-                    <div class="flex flex-row justify-center items-center -my-1">
-                        <Input
-                                bind:value={startDiff}
-                                name="Starting Difficulty"
-                                type="dropdown"
-                                elements={["Easy", "Medium", "Hard"]}
-                        />
-                    </div>
-                    <div class="flex flex-col justify-center -my-1">
-                        <Input
-                                bind:value={answerNumber}
-                                name="Maximum amount of questions to correctly answer before finishing"
-                                type="text"
-                        />
-                        {#if !lookAt}
-                            <div class="text-red-500 pl-1 -mt-2">
-                                Must be a number
-                            </div>
-                        {/if}
-                    </div>
-                    <div class="flex flex-row justify-center items-center -my-1">
-                        <Input
-                                bind:value={maxTries}
-                                name="Allow up to _ tries before showing the right answer"
-                                type="dropdown"
-                                elements={[0, 1, 2, 3]}
-                        />
-                    </div>
-                    <div class="flex flex-row justify-center items-center px-1 gap-2">
-                        <Input
-                                bind:value={hideQuestions}
-                                type="checkbox"
-                                class="flex flex-row w-min"
-                        />
-                        <div class="w-full">Hide questions that have been seen in other sessions.</div>
-                    </div>
+            <div class="flex justify-between items-center w-full">
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold opacity-50">1. Exam</div>
                 </div>
-            <!--{/if}-->
-            <Button disabled={!lookAt} onclick={() => goto(`/questiongets/khanstyle?start=${['e','m','h'][startDiff]}&tries=${maxTries}&ignoreViewed=${hideQuestions}&streak=${answerNumber}`)}>Let's do this!</Button>
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold opacity-50">2. Section</div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold opacity-50">3. Topics</div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold opacity-50">4. Review</div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold">5. Start</div>
+                </div>
+            </div>
         </div>
-    {/await}
+
+        <div class="space-y-2 bg-gray-800 rounded-lg p-6 shadow-md" transition:slide={{duration: 50}}>
+            {#await data.questions}
+                <div class="flex flex-row gap-2 p-5 items-center justify-center">
+                    <Spinner/>
+                    <div>Loading your questions. This may take a while.</div>
+                </div>
+            {:then questions}
+                {@const filtered = questions.filter(v => appliedFilters(v))}
+                <div class="text-2xl font-bold">Start your test</div>
+                <div class="text-gray-300">
+                    You have {filtered.length} questions available to go through right now,
+                    out of which <button class="underline cursor-pointer" onclick={async () => openResetDialog = true}>you have viewed {viewedQuestions.filter(v => questions.some(x => x.external_id === v || x.ibn === v)).length}.</button>
+                </div>
+                <div class="pt-0">
+                    Preparation doesn't just have to be exactly like a test. You should choose the best way to prepare that'll
+                    help you master the skill you're having trouble with.
+                </div>
+                <div class="flex flex-row justify-center items-center -my-1">
+                    <Input
+                            bind:value={startDiff}
+                            name="Starting Difficulty"
+                            type="dropdown"
+                            elements={["Easy", "Medium", "Hard"]}
+                    />
+                </div>
+                <div class="flex flex-col justify-center -my-1">
+                    <Input
+                            bind:value={answerNumber}
+                            name="Maximum streak before finishing session"
+                            type="text"
+                    />
+                    {#if !lookAt}
+                        <div class="text-red-500 pl-1 -mt-2">
+                            Must be a number
+                        </div>
+                    {/if}
+                </div>
+                <div class="flex flex-row justify-center items-center -my-1">
+                    <Input
+                            bind:value={maxTries}
+                            name="Maximum tries to answer a question before showing the answer"
+                            type="dropdown"
+                            elements={["None", 1, 2, 3]}
+                    />
+                </div>
+                <div class="flex flex-row justify-center items-center px-1 gap-2">
+                    <Input
+                            bind:value={hideQuestions}
+                            type="checkbox"
+                            class="flex flex-row w-min"
+                    />
+                    <div class="w-full">Hide questions that have been seen in other sessions.</div>
+                </div>
+            {/await}
+        </div>
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-between items-center mt-6">
+            <Button
+                    onclick={() => goto(`/topics?left=3`)}
+            >
+                Previous
+            </Button>
+
+            <Button
+                    disabled={!lookAt}
+                    onclick={() => goto(`/questiongets/khanstyle?start=${['e','m','h'][startDiff]}&tries=${maxTries}&ignoreViewed=${hideQuestions}&streak=${answerNumber}`)}
+            >
+                I'm ready
+            </Button>
+        </div>
+
+    </div>
 </div>
+
+<Dialog actions={[{name: "Close", close: true, action() {openResetDialog = false}}]} open={openResetDialog} title="Your seen questions" description="You have seen {viewedQuestions.length} questions in total.">
+    <div>
+        QuestionableSAT keeps track of the questions you view, so you can practice with unique questions each time. You
+        can disable this setting, or reset the questions you've seen if you want to start with a blank slate.
+    </div>
+    <div class="py-2">
+        <Button onclick={() => (localStorage.setItem("seen", JSON.stringify([])), viewedQuestions = [])}>
+            Reset all seen questions
+        </Button>
+    </div>
+</Dialog>

@@ -22,9 +22,4 @@
 	<link rel="icon" href={favicon} />
 </svelte:head>
 
-<div class="fixed z-999 w-full bg-blue-800/40 backdrop-blur-xl text-white p-4 flex flex-row justify-between items-center">
-	<div class="text-white font-bold text-2xl">
-		QuestionableSAT
-	</div>
-</div>
 {@render children?.()}

@@ -79,8 +79,8 @@
         }
         let bank: Question[] = (await data.questions)
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
-            .filter(v => v.score_band_range_cd < currentScoreTarget + 2 && v.score_band_range_cd > currentScoreTarget - 2) // within score range
-            .filter(v => !currentQuestionHistory.some(x => x[0].externalid === v.external_id)) // ignore seen questions
+            .filter(v => v.score_band_range_cd < currentScoreTarget + 1 && v.score_band_range_cd > currentScoreTarget - 1) // within score range
+            .filter(v => !currentQuestionHistory.some(x => x[0].externalid === v.external_id) || !currentQuestionHistory.some(x => x[0].externalid === v.ibn)) // ignore seen questions
         console.log(bank)
         if (ignoreViewed) {
             bank = bank.filter(v => !seenInSessions.includes(v.external_id))
@@ -160,7 +160,7 @@
             currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) :
             currentQuestion.keys.includes(selectedOption.toString())) {
             currentScoreTarget += scoreTargetIncrease
-            currentScoreTarget = Math.min(currentScoreTarget, 9)
+            currentScoreTarget = Math.min(currentScoreTarget, 7)
             currentStreak += 1
             if (maxStreak && currentStreak >= maxStreak)
                 return [true, -1]
@@ -180,6 +180,7 @@
         clearTimeout(timerHandler)
     }
 
+
     onMount(() => {
         const urlParams = new URLSearchParams(window.location.search);
         start = urlParams.get("start")
@@ -190,11 +191,11 @@
         if (!start || isNaN(tries)) goto("/questiongets")
 
         if (start === 'e') {
-            currentScoreTarget = 3.0
+            currentScoreTarget = 3
         } else if (start === 'm') {
-            currentScoreTarget = 5.0
+            currentScoreTarget = 5
         } else if (start === 'h') {
-            currentScoreTarget = 7.0
+            currentScoreTarget = 7
         }
 
         getNextQuestion()
@@ -208,7 +209,9 @@
         (currentQuestionHistory[currentlyReviewing][0] as QuestionDetailMCQ).answerOptions.findIndex(v => v.id === currentQuestionHistory[currentlyReviewing][2].selected) :
             currentQuestionHistory[currentlyReviewing][2].selected
     )
-    let statusThing = $derived(`targeting ${currentScoreTarget}`)
+    let statusThing = $derived(
+        `Difficulty between ${(currentScoreTarget - 1).toFixed(2)} to ${(currentScoreTarget + 1).toFixed(2)}`
+    )
 </script>
 
 {#if timetogo}
@@ -232,41 +235,71 @@
             />
         </div>
     {:else}
-        <div class="w-screen h-screen flex flex-col items-center justify-center backdrop-blur-2xl bg-neutral-900/50 text-white" transition:slide|global>
-            <div class="flex flex-col p-5 gap-2 m-5 w-2/3 backdrop-blur-2xl bg-blue-700/50">
-                <div class="text-4xl font-bold">
-                    Nice going! Finished your practice session.
+        <div class="flex flex-col w-screen h-screen items-center justify-center bg-neutral-900/50 backdrop-blur-sm p-10 bg-opacity-50 text-white min-h-screen">
+            <div class="max-w-3xl mx-auto w-full space-y-8">
+                <div class="flex flex-col items-center gap-5">
+                    <div class="font-bold font-sans">
+                        QuestionableSAT
+                    </div>
+                    <div class="flex justify-between items-center w-full">
+                        <div class="flex-1 text-center">
+                            <div class="text-xl font-bold opacity-50">1. Exam</div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <div class="text-xl font-bold opacity-50">2. Section</div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <div class="text-xl font-bold opacity-50">3. Topics</div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <div class="text-xl font-bold opacity-50">4. Review</div>
+                        </div>
+                        <div class="flex-1 text-center">
+                            <div class="text-xl font-bold">5. Start</div>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    You answered <b>{currentQuestionHistory.length} questions</b> and got <b>{currentQuestionHistory.filter(v => v[2].correct).length} correct</b>
-                </div>
-                <table class="pt-4 max-h-96 overflow-y-auto">
-                    <thead>
-                        <tr class="">
-                            <td>#</td>
-                            <td>Class</td>
-                            <td>Skill</td>
-                            <td>Difficulty</td>
-                            <td>Correct</td>
-                            <td>Time taken</td>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {#each currentQuestionHistory as [_, data, {correct, timeInt}], i}
-                            <tr class="hover:bg-blue-800 active:bg-blue-700 transition-colors cursor-pointer" onclick={() => currentlyReviewing = i} aria-roledescription="Review question">
-                                <td>{i + 1}</td>
-                                <td>{data.primary_class_cd_desc}</td>
-                                <td>{data.skill_desc}</td>
-                                <td>{data.difficulty === 'E' ? 'Easy' : data.difficulty === 'M' ? 'Medium' : "Hard"}</td>
-                                <td>{correct ? 'Correct' : 'Incorrect'}</td>
-                                <td>{`${Math.floor(timeInt / 60)}:${timeInt % 60 < 10 ? '0' + (timeInt % 60).toString() : (timeInt % 60).toString()}`}</td>
+
+                <div class="space-y-2 bg-gray-800 rounded-lg p-6 shadow-md" transition:slide={{duration: 50}}>
+                    <div class="text-2xl font-bold">
+                        Nice going! Finished your practice session.
+                    </div>
+                    <div class="text-gray-300">
+                        You answered <b>{currentQuestionHistory.length} questions</b> and got <b>{currentQuestionHistory.filter(v => v[2].correct).length} correct</b>
+                    </div>
+                    <div class="max-h-96 overflow-y-scroll w-full">
+                        <table class="pt-4 w-full">
+                            <thead>
+                            <tr class="">
+                                <td>#</td>
+                                <td>Class</td>
+                                <td>Skill</td>
+                                <td>Difficulty</td>
+                                <td>Result</td>
+                                <td>Time taken</td>
                             </tr>
-                        {/each}
-                    </tbody>
-                </table>
-                <div>
+                            </thead>
+                            <tbody>
+                            {#each currentQuestionHistory as [_, data, {correct, timeInt}], i}
+                                <tr class="hover:bg-blue-800/50 active:bg-blue-700/50 transition-colors cursor-pointer" onclick={() => currentlyReviewing = i} aria-roledescription="Review question">
+                                    <td>{i + 1}</td>
+                                    <td>{data.primary_class_cd_desc}</td>
+                                    <td>{data.skill_desc}</td>
+                                    <td>{data.difficulty === 'E' ? 'Easy' : data.difficulty === 'M' ? 'Medium' : "Hard"}</td>
+                                    <td>{correct ? '✅' : '❌'}</td>
+                                    <td>{`${Math.floor(timeInt / 60)}:${timeInt % 60 < 10 ? '0' + (timeInt % 60).toString() : (timeInt % 60).toString()}`}</td>
+                                </tr>
+                            {/each}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="flex justify-between items-center mt-6">
+                    <Button onclick={() => goto("/")}>Exit</Button>
                     <Button onclick={() => goto("/topics")}>Try something else</Button>
                 </div>
+
             </div>
         </div>
     {/if}
@@ -288,6 +321,6 @@
             />
         </div>
     {:else}
-        <Dialog open={true} title="Loading it in..." loading />
+        <Dialog open={true} title="Getting your first question..." loading />
     {/if}
 {/if}

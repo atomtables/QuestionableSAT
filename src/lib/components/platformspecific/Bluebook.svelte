@@ -53,6 +53,7 @@
     $effect(() => {
         if (question) {
             eliminated = {}
+            currentTries = 0
         }
     })
 
@@ -156,7 +157,7 @@
 
 <svelte:window onmouseupcapture={onselection} ontouchendcapture={onselection} />
 
-<div data-dummy class="bg-yellow-500/50 hover:bg-yellow-500 cursor-pointer"></div>
+<div data-dummy class="bg-yellow-500/50 hover:bg-yellow-500 cursor-pointer sr-only math-container"></div>
 
 <div class="w-screen h-screen z-1000 flex flex-nowrap flex-col bg-white">
     <div class="header flex flex-row justify-between font-sans px-4 py-3 shrink-0 bg-blue-100">
@@ -176,7 +177,7 @@
                 Hide
             </button>
         </div>
-        <div class="text-right flex flex-col items-right gap-1">
+        <div class="text-right flex flex-col items-end gap-1">
             <div class="text-xs font-bold">
                 {status || '100%'}
             </div>
@@ -206,7 +207,7 @@
                 {@html question.stimulus}
             </div>
         {/if}
-        <div class="{!(question.type === 'mcq' && question.stimulus) ? 'w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
+        <div class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
             <div class="flex flex-col flex-nowrap">
                 <div class="flex flex-row font-sans items-center justify-center border-b-2">
                     <div class="px-2 h-8 bg-black text-white flex items-center justify-center">
@@ -361,7 +362,7 @@
 
 <style lang="postcss">
     @reference 'tailwindcss';
-    .sr-only {
-        display:none;
+    @layer base {
+
     }
 </style>

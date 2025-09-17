@@ -1,122 +1,276 @@
-<script>
-    import Input from "$lib/components/Input.svelte";
-    import {slide} from "svelte/transition";
-    import Collapsible from "$lib/components/Collapsible.svelte";
-    import Button from "$lib/components/Button.svelte";
-    import {selectedDetails} from "$lib/clientstate/states.svelte.js";
-    import {onMount} from "svelte";
-    import {goto} from "$app/navigation";
+<script lang="ts">
+    import Input from '$lib/components/Input.svelte';
+    import Collapsible from '$lib/components/Collapsible.svelte';
+    import Button from '$lib/components/Button.svelte';
+    import {onMount, tick} from 'svelte';
+    import { goto } from '$app/navigation';
+    import { slide } from "svelte/transition";
+    import type {LookupData} from "$lib/types/types";
+    import {selectedDetails} from "$lib/clientstate/states.svelte";
 
-    let {data} = $props();
+    const setup = $state({
+        test: null as number | null,
+        section: null as number | null,
+        topics: {} as Record<number, boolean>,
+        subtopics: {} as Record<number, boolean>,
+        ignoreLive: true
+    });
+
+    let currentStep = $state(1);
+
+    let { data }: {data: {lookup: LookupData}}
+        = $props(); // assumes data.lookup.lookupData etc.
 
     onMount(() => {
-        selectedDetails.topics = {}
-        selectedDetails.subtopics = {}
-        selectedDetails.ignoreLive = true
-    })
+        // reset on mount if needed
+        console.log("mounted")
+        const urlParams = new URLSearchParams(window.location.search);
+        let left = urlParams.get("left")
+        if (left) {
+            console.log(left)
+            for (let [k, v] of Object.entries(selectedDetails)) {
+                setup[k] = v
+            }
+            console.log($state.snapshot(setup))
 
-    let lastOpened = $state({})
+            tick().then(() => {
+                for (let i = 0; i <= parseInt(left); i++) {
+                    goNext()
+                }
+            })
+            return;
+        }
+        setup.test = undefined;
+        setup.section = undefined;
+        setup.topics = {};
+        setup.subtopics = {};
+        setup.ignoreLive = true;
+        currentStep = 1;
+    });
+
+    const verifyNext = $derived.by(() => {
+        if (currentStep === 1 && typeof setup.test !== 'number') return true;
+        if (currentStep === 2 && typeof setup.section !== 'number') return true;
+        if (currentStep === 3 && !Object.values(setup.subtopics).some(v => v)) return true;
+        return false;
+    })
+    function goNext() {
+        if (currentStep === 1) {
+            if (typeof setup.test !== 'number') return;
+        }
+        if (currentStep === 2) {
+            if (typeof setup.section !== 'number') return;
+            Object.values(data.lookup.lookupData.domain)[setup.section].forEach(v => {
+                v.skill.forEach(({id}) => {
+                    setup.subtopics[id] = true
+                })
+            })
+        }
+        if (currentStep === 3) {
+            if (!Object.values(setup.subtopics).some(v => v)) return;
+            Object.entries(setup.subtopics).forEach(([k, v]) => {
+                if (v) {
+                    Object.values(data.lookup.lookupData.domain)[setup.section].forEach(x => {
+                        x.skill.forEach(({id}) => {
+                            // @ts-ignore
+                            if (parseInt(id) === parseInt(k)) {
+                                console.log(k, v, x, id)
+                                setup.topics[x.id] = true
+                            }
+                        })
+                    })
+                }
+            })
+        }
+        if (currentStep < 4) currentStep += 1;
+    }
+    function goPrev() {
+        if (currentStep > 1) currentStep -= 1;
+    }
+    function submit() {
+        for (let [k, v] of Object.entries(setup)) {
+            selectedDetails[k] = v
+        }
+        goto('/questiongets');
+    }
 </script>
 
-<div class="flex flex-col gap-5 items-center justify-center lg:min-h-screen bg-neutral-900/30 backdrop-blur-2xl">
-    <div class="block lg:hidden h-[64px]">
-
-    </div>
-    <div class="flex flex-col lg:flex-row gap-5 items-center">
-        <div class="flex flex-col lg:max-h-120 lg:overflow-y-scroll p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1">
-            <div class="text-lg font-bold font-sans border-2 rounded-full w-8 h-8 flex items-center justify-center">
-                1
+<div class="flex flex-col w-screen h-screen items-center justify-center bg-neutral-900/50 backdrop-blur-sm p-10 bg-opacity-50 text-white min-h-screen">
+    <div class="max-w-3xl mx-auto w-full space-y-8">
+        <div class="flex flex-col items-center gap-5">
+            <div class="font-bold font-sans">
+                QuestionableSAT
             </div>
-            <div class="text-4xl font-bold">
-                Choose your exam
-            </div>
-            <div class="pl-0.5">
-                Select the exam from the options that CollegeBoard has made publicly available below.
-            </div>
-            <Input name="Exam" type="dropdown" bind:value={selectedDetails.test} class="w-full" elements={data.lookup.lookupData?.assessment.map(a => a.text)} />
-        </div>
-        <div class="flex flex-col lg:max-h-120 lg:overflow-y-scroll p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1 transition-all duration-300 {typeof selectedDetails.test !== 'number' && 'opacity-50 touch-none pointer-events-none'}">
-            <div class="text-lg font-bold font-sans border-2 rounded-full w-8 h-8 flex items-center justify-center">
-                2
-            </div>
-            <div class="text-4xl font-bold">
-                Choose your test section and topics
-            </div>
-            <div class="pl-0.5">
-                Get the most out of your practice by selecting the section and topics you want to focus on.
-            </div>
-            <Input
-                    name="Section"
-                    type="dropdown"
-                    bind:value={selectedDetails.section}
-                    class="w-full"
-                    elements={data.lookup.lookupData?.test.map(a => a.text)}
-            />
-            {#if typeof selectedDetails.section === 'number'}
-                <div class="flex flex-col gap-0 max-h-60 overflow-y-auto -mt-4 pl-0.5" transition:slide>
-                    {#each Object.values(data.lookup.lookupData?.domain)[selectedDetails.section] as topic}
-                        <div class="flex flex-row justify-center items-center gap-2">
-                            <Input
-                                    type="checkbox"
-                                    bind:value={selectedDetails.topics[parseInt(topic.id)]}
-                                    action={(v) => v ? lastOpened = {[topic.id]: true} : lastOpened = {[Object.keys(selectedDetails.topics).at(-1)]: true}}
-                                    class="flex flex-row w-min"
-                            />
-                            <div class="w-full">{topic.text}</div>
-                        </div>
-                    {/each}
+            <div class="flex justify-between items-center w-full">
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold" class:opacity-50={currentStep !== 1}>1. Exam</div>
                 </div>
-            {/if}
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold" class:opacity-50={currentStep !== 2}>2. Section</div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold" class:opacity-50={currentStep !== 3}>3. Topics</div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold" class:opacity-50={currentStep !== 4}>4. Review</div>
+                </div>
+                <div class="flex-1 text-center">
+                    <div class="text-xl font-bold" class:opacity-50={currentStep !== 5}>5. Start</div>
+                </div>
+            </div>
         </div>
-        <div class="flex flex-col lg:max-h-120 lg:overflow-y-scroll p-4 gap-4 text-white backdrop-blur-2xl m-4 flex-1 {typeof selectedDetails.section !== 'number' && 'opacity-50 touch-none pointer-events-none'}">
-            <div class="text-lg font-bold font-sans border-2 rounded-full w-8 h-8 flex items-center justify-center">
-                3
+
+        <!-- Step 1: Choose Exam -->
+        {#if currentStep === 1}
+            <div class="space-y-4 bg-gray-800 rounded-lg p-6 shadow-md" transition:slide>
+                <div class="text-2xl font-bold">Choose your exam</div>
+                <div class="text-gray-300">Select the exam from the options that CollegeBoard has made publicly available below.</div>
+
+                {#each data.lookup.lookupData.assessment as { id, text }, i}
+                    <div class="flex items-center gap-3">
+                        <Input
+                                type="radio"
+                                radioGroup="assessment"
+                                radioId={i}
+                                bind:value={setup.test}
+                                class="w-min"
+                        />
+                        <span class="text-lg">{text}</span>
+                    </div>
+                {/each}
             </div>
-            <div class="text-4xl font-bold">
-                Choose subtopics to focus on
+        {/if}
+
+        <!-- Step 2: Choose Section -->
+        {#if currentStep === 2}
+            <div class="space-y-4 bg-gray-800 rounded-lg p-6 shadow-md" transition:slide>
+                <div class="text-2xl font-bold">Choose your test section</div>
+                <div class="text-gray-300">Get the most out of your practice by selecting the section you want to focus on.</div>
+
+                {#each data.lookup.lookupData.test as { id, text }, i}
+                    <div class="flex items-center gap-3">
+                        <Input
+                                type="radio"
+                                radioGroup="section"
+                                radioId={i}
+                                bind:value={setup.section}
+                                class="w-min accent-indigo-500"
+                        />
+                        <span class="text-lg">{text}</span>
+                    </div>
+                {/each}
             </div>
-            <div class="pl-0.5">
-                We would recommend choosing all subjects, but if you know where you need practice, then work hard.
-            </div>
-            {#if selectedDetails.topics}
-                {#each Object.keys(selectedDetails.topics) as key, i}
-                    {#if selectedDetails.topics[key] && typeof selectedDetails.section === 'number'}
-                        {@const value = Object.values(data.lookup.lookupData.domain)[selectedDetails.section]?.[key - 1]}
-                        <div transition:slide>
-                            {#if value && value.skill}
-                                <div transition:slide>
-                                    <Collapsible title={value.text} display={lastOpened[key]}>
-                                        {#each value.skill as {id, text}}
-                                            <div class="flex flex-row justify-center items-center gap-2">
+        {/if}
+
+        <!-- Step 3: Topics & Subtopics -->
+        {#if currentStep === 3}
+            <div class="space-y-4 bg-gray-800 rounded-lg p-6 shadow-md" transition:slide>
+                <div class="text-2xl font-bold">Choose Topics & Subtopics</div>
+                <div class="text-gray-300">Focus on the section and topics you want to work on.</div>
+
+                {#if typeof setup.section === 'number'}
+                    <div class="max-h-60 overflow-y-auto space-y-3 mt-4">
+                        <!--// @ts-ignore -->
+                        {#each (Object.values(data.lookup.lookupData.domain)[setup.section]) as topic}
+                            <div class="flex flex-col space-y-2">
+                                {#if topic.skill}
+                                    <Collapsible
+                                            title={topic.text}
+                                            description={`${topic.skill.filter(s => setup.subtopics[s.id]).length}/${topic.skill.length} selected`}
+                                    >
+                                        {#each topic.skill as skill}
+                                            <div class="flex items-center gap-3 ml-4">
                                                 <Input
                                                         type="checkbox"
-                                                        bind:value={selectedDetails.subtopics[id]}
-                                                        class="flex flex-row w-min"
-                                                        defaultValue={true}
+                                                        bind:value={setup.subtopics[skill.id]}
+                                                        class="w-min accent-indigo-500"
                                                 />
-                                                <div class="w-full">{text}</div>
+                                                <span class="text-base">{skill.text}</span>
                                             </div>
                                         {/each}
                                     </Collapsible>
-                                </div>
-                            {/if}
-                        </div>
-                    {/if}
-                {/each}
-            {/if}
-            <div class="flex flex-row justify-center items-center gap-2">
-                <Input
-                        type="checkbox"
-                        bind:value={selectedDetails.ignoreLive}
-                        class="flex flex-row w-min"
-                />
-                <div class="w-full">Do not show problems that are already in Bluebook® Practice tests.</div>
+                                {/if}
+                            </div>
+                        {/each}
+                    </div>
+
+                    <div class="flex items-center gap-3 mt-4">
+                        <Input
+                                type="checkbox"
+                                bind:value={setup.ignoreLive}
+                                class="w-min accent-indigo-500"
+                        />
+                        <span class="text-lg">Do not show problems that are already in Bluebook® Practice tests.</span>
+                    </div>
+
+                {:else}
+                    <div class="text-gray-400 mt-4 italic">Please choose a section first.</div>
+                {/if}
+
             </div>
+        {/if}
+
+        <!-- Step 4: Review -->
+        {#if currentStep === 4}
+            <div class="space-y-4 bg-gray-800 rounded-lg p-6 shadow-md" transition:slide>
+                <div class="text-2xl font-bold">Review & Confirm</div>
+
+                <div class="space-y-2">
+                    <p><span class="font-semibold">Exam:</span>
+                        {setup.test !== null ? data.lookup.lookupData.assessment[setup.test].text : '—'
+                        }
+                    </p>
+                    <p><span class="font-semibold">Section:</span>
+                        {setup.section !== null ? data.lookup.lookupData.test[setup.section].text : '—'}
+                    </p>
+                </div>
+
+                <div>
+                    <h3 class="font-semibold mt-4">Topics selected:</h3>
+                    <ul class="list-disc list-inside ml-4">
+                        {#each Object.entries(setup.topics).filter(([_, v]) => v) as [topicId, _]}
+                            { "" /* @ts-ignore */ }
+                            {@const topic = Object.values(data.lookup.lookupData.domain)[setup.section].find(t => parseInt(t.id) === parseInt(topicId))}
+                            <li>
+                                {
+                                    topic.text
+                                } ({topic.skill.filter(s => setup.subtopics[s.id]).length}/{topic.skill.length} selected)
+                            </li>
+                        {/each}
+                    </ul>
+                </div>
+
+                <div class="mt-2">
+                    <p><span class="font-semibold">Ignore questions that are in Bluebook® tests:</span> {setup.ignoreLive ? 'Yes' : 'No'}</p>
+                </div>
+
+            </div>
+        {/if}
+
+        <!-- Navigation Buttons -->
+        <div class="flex justify-between items-center mt-6">
+            <Button
+                    onclick={goPrev}
+                    disabled={currentStep === 1}
+            >
+                Previous
+            </Button>
+
+            {#if currentStep < 4}
+                <Button
+                        onclick={goNext}
+                        disabled={verifyNext}
+                >
+                    Next
+                </Button>
+            {:else}
+                <Button
+                        onclick={submit}
+                >
+                    I'm ready
+                </Button>
+            {/if}
         </div>
+
     </div>
-    {#if selectedDetails.topics && Object.values(selectedDetails.topics).some(v => v === true)}
-        <div transition:slide class="pb-5">
-            <Button onclick={() => goto("/questiongets")}>I'm ready.</Button>
-        </div>
-    {/if}
 </div>
