@@ -7,7 +7,7 @@
     let { title, description, children, display = $bindable() } = $props()
 </script>
 
-<div class="w-full from-cyan-700 to-slate-700 bg-gradient-to-r {display ? 'py-3' : 'pt-3'} px-2 transition-all">
+<div class="w-full to-cyan-700 from-slate-700 bg-gradient-to-r {display ? 'py-3' : 'pt-3'} px-2 transition-all">
     <div class="flex flex-row items-end">
         <div class="text-2xl font-bold pb-2">
             {title}

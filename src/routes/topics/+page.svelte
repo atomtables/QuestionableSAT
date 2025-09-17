@@ -7,6 +7,8 @@
     import { slide } from "svelte/transition";
     import type {LookupData} from "$lib/types/types";
     import {selectedDetails} from "$lib/clientstate/states.svelte";
+    import {fade} from "svelte/transition";
+    import {cubicIn} from "svelte/easing";
 
     const setup = $state({
         test: null as number | null,
@@ -95,7 +97,7 @@
     }
 </script>
 
-<div class="flex flex-col w-screen h-screen items-center justify-center bg-neutral-900/50 backdrop-blur-sm p-10 bg-opacity-50 text-white min-h-screen">
+<div class="flex flex-col w-screen h-screen items-center justify-center bg-neutral-900/50 backdrop-blur-sm p-10 bg-opacity-50 text-white min-h-screen" in:fade={{easing: cubicIn, duration: 200}}>
     <div class="max-w-3xl mx-auto w-full space-y-8">
         <div class="flex flex-col items-center gap-5">
             <div class="font-bold font-sans">

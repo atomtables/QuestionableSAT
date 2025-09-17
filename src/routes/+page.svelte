@@ -1,11 +1,11 @@
 <script>
-    import {onMount} from "svelte";
-    import Spinner from "$lib/components/Spinner.svelte";
     import Button from "$lib/components/Button.svelte";
     import {goto} from "$app/navigation";
+    import {fade} from "svelte/transition";
+    import {cubicIn} from "svelte/easing";
 </script>
 
-<div class="w-full h-screen lg:p-20 md:p-15 p-5 backdrop-blur-3xl text-white flex flex-col md:justify-center gap-5">
+<div class="w-full h-screen lg:p-20 md:p-15 p-5 backdrop-blur-3xl text-white flex flex-col md:justify-center gap-5 fixed" transition:fade={{easing: cubicIn, duration: 50}}>
     <div class="-mb-5 font-bold font-sans">
         QuestionableSAT
     </div>

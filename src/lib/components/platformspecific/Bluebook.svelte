@@ -7,6 +7,7 @@
     import Button from "$lib/components/Button.svelte";
     import {onMount} from "svelte";
     import Dropdown from "$lib/components/Dropdown.svelte";
+    import copy from "$lib/assets/copy.svg";
 
     let maxTries: number = $state()
     let currentTries: number = $state(0)
@@ -203,11 +204,11 @@
     <hr>
     <div class="flex-1 flex flex-col lg:flex-row flex-nowrap px-15 overflow-y-auto">
         {#if question.type === 'mcq' && question.stimulus}
-            <div class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
+            <section class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
                 {@html question.stimulus}
-            </div>
+            </section>
         {/if}
-        <div class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
+        <section class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
             <div class="flex flex-col flex-nowrap">
                 <div class="flex flex-row font-sans items-center justify-center border-b-2">
                     <div class="px-2 h-8 bg-black text-white flex items-center justify-center">
@@ -281,6 +282,24 @@
                             <b>{questionOutside.difficulty === 'E' ? 'easy' : questionOutside.difficulty === 'M' ? 'medium' : 'hard'}</b>
                             difficulty (CB level of <b>{questionOutside.score_band_range_cd}</b>)
                         </div>
+                        <Button
+                                class="mb-2 cursor-pointer p-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 transition-all rounded-2xl"
+                                resetStyling
+                                onclick={() => {
+                                    navigator.clipboard.writeText(
+                                        ((question.type === 'mcq' && question.stimulus) ? `Context: ${question.stimulus}\n` : '') +
+                                        `Question: ${question.stem}` +
+                                        ((question.type === 'mcq' && question.answerOptions) ? (`\nChoices: ` + (question).answerOptions.map(({id, content}, i) => {
+                                            `\n${['A', 'B', 'C', 'D', 'E', 'F'][i]}: ${content}`
+                                        })) : '')
+                                    )
+                                }}
+                        >
+                            <div class="w-full flex flex-row gap-2 text-black">
+                                <img src={copy} alt="Copy the question">
+                                <span>Copy raw question to clipboard</span>
+                            </div>
+                        </Button>
 <!--                        <div class="p-2 bg-yellow-400 rounded-2xl">-->
 <!--                            Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no-->
 <!--                            money in having you get a good score the first time around.-->
@@ -291,7 +310,7 @@
                     </div>
                 {/if}
             </div>
-        </div>
+        </section>
     </div>
     <hr>
     <div class="shrink-0 flex flex-row justify-between font-sans p-5 bg-blue-100">
