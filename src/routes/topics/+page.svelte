@@ -76,7 +76,6 @@
                         x.skill.forEach(({id}) => {
                             // @ts-ignore
                             if (parseInt(id) === parseInt(k)) {
-                                console.log(k, v, x, id)
                                 setup.topics[x.id] = true
                             }
                         })

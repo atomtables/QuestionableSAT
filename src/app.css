@@ -57,4 +57,13 @@
         background-color: white;
         padding: 0.5rem;
     }
+    .math_expression {
+        display: inline;
+    }
+    .math-container {
+        display: inline;
+    }
+    .math-container > .math-img {
+        display: inline;
+    }
 }

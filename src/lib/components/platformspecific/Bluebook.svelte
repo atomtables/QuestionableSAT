@@ -2,12 +2,16 @@
     import stylus from "$lib/assets/stylus.svg"
     import more from "$lib/assets/more.svg"
     import bookmarkable from "$lib/assets/bookmarkable.svg"
+    import bookmarked from "$lib/assets/bookmarked.svg";
     import type {Question, QuestionDetail} from "$lib/types/types";
     import {alert} from "$lib/components/Dialog.svelte"
     import Button from "$lib/components/Button.svelte";
-    import {onMount} from "svelte";
+    import {type Snippet, onMount} from "svelte";
     import Dropdown from "$lib/components/Dropdown.svelte";
     import copy from "$lib/assets/copy.svg";
+    import dropup from "$lib/assets/dropup.svg";
+    import {fade} from "svelte/transition";
+    import {cubicOut} from "svelte/easing";
 
     let maxTries: number = $state()
     let currentTries: number = $state(0)
@@ -17,26 +21,34 @@
     let hideTimer: boolean = $state(false)
     let oldHideTimer: boolean = $state(false)
     let timeToExit: boolean = $state(false)
+    let showOverviewPrompt: boolean = $state(false)
 
     let {
         question = $bindable(),
         currentQuestionNumber = $bindable(),
+        currentQuestionNumberShow = $bindable(),
         total,
         selectedOption = $bindable(),
         submitHandler,
         nextQuestionHandler,
+        previousQuestionHandler,
         timer = $bindable(),
         questionOutside = $bindable(),
         exitHandler,
         history = null,
-        status = $bindable()
+        status = $bindable(),
+        miniOverviewSnippet = null,
+        overviewSnippet = null,
+        questionShouldBeReviewed = $bindable()
     }: {
         question: QuestionDetail,
+        currentQuestionNumberShow: number,
         currentQuestionNumber: number,
         total: number | null,
         selectedOption: number | string,
-        submitHandler: () => Promise<[boolean, number | null]>,
+        submitHandler: () => Promise<[boolean, number | null] | void>,
         nextQuestionHandler: () => Promise<void>,
+        previousQuestionHandler: () => Promise<void>,
         timer: string,
         questionOutside: Question,
         exitHandler: () => Promise<void>,
@@ -44,11 +56,14 @@
             selected: string,
             exit: () => void
         } | null,
-        status: string
+        status: string,
+        miniOverviewSnippet?: Snippet,
+        overviewSnippet?: Snippet,
+        questionShouldBeReviewed: boolean
     } = $props()
 
     $effect(() => {
-        console.log($state.snapshot(question.correct_answer))
+        console.log($state.snapshot(question?.correct_answer))
     })
 
     $effect(() => {
@@ -154,9 +169,63 @@
             return mathML
         }
     }
+
+    async function onNextHandler() {
+        if (history) {
+            history.exit()
+        } else if (total !== null && currentQuestionNumber === -1) {
+            await submitHandler()
+        } else if (total !== null) {
+            await nextQuestionHandler()
+        } else {
+            if (!shown) {
+                let val = await submitHandler()
+                let correct: boolean, max: number | null;
+                if (val) {
+                    [correct, max] = val
+                }
+                maxTries = max
+                if (correct) {
+                    if (question.type === 'mcq') {
+                        isCorrect = question.answerOptions[selectedOption].id
+                    } else {
+                        isCorrect = selectedOption.toString()
+                    }
+                    if (max === -1) {
+                        timeToExit = true
+                    }
+                    shown = true
+                } else {
+                    if (currentTries >= maxTries) {
+                        if (question.type === 'mcq') {
+                            isWrong = question.answerOptions[selectedOption].id
+                            isCorrect = question.keys[0]
+                        } else {
+                            isWrong = selectedOption.toString()
+                            isCorrect = null
+                        }
+                        shown = true
+                    } else {
+                        currentTries++;
+                        await alert("Incorrect answer", `You have ${maxTries - currentTries + 1} ${max - currentTries + 1 === 1 ? 'try' : 'tries'} remaining.`)
+                    }
+                }
+                oldHideTimer = hideTimer
+                hideTimer = false
+            } else if (timeToExit) {
+                await exitHandler()
+            } else {
+                await nextQuestionHandler()
+                shown = false
+                isCorrect = null
+                isWrong = null
+                hideTimer = oldHideTimer
+            }
+        }
+    }
 </script>
 
-<svelte:window onmouseupcapture={onselection} ontouchendcapture={onselection} />
+<svelte:window onmouseupcapture={onselection} ontouchendcapture={onselection} onclick={() => showOverviewPrompt = false} />
 
 <div data-dummy class="bg-yellow-500/50 hover:bg-yellow-500 cursor-pointer sr-only math-container"></div>
 
@@ -203,89 +272,106 @@
     </div>
     <hr>
     <div class="flex-1 flex flex-col lg:flex-row flex-nowrap px-15 overflow-y-auto">
-        {#if question.type === 'mcq' && question.stimulus}
-            <section class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
-                {@html question.stimulus}
-            </section>
-        {/if}
-        <section class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
-            <div class="flex flex-col flex-nowrap">
-                <div class="flex flex-row font-sans items-center justify-center border-b-2">
-                    <div class="px-2 h-8 bg-black text-white flex items-center justify-center">
-                        {currentQuestionNumber}
-                    </div>
-                    <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
-                        <div class="text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-not-allowed'}">
-                            <img src={bookmarkable} alt="boomarkable"/>
-                            <div>
-                                Mark for Review
-                            </div>
+        {#if currentQuestionNumber !== -1}
+            {#if question.type === 'mcq' && question.stimulus}
+                <section class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
+                    {@html question.stimulus}
+                </section>
+            {/if}
+            <section class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
+                <div class="flex flex-col flex-nowrap">
+                    <div class="flex flex-row font-sans items-center justify-center border-b-2">
+                        <div class="px-2 h-8 bg-black text-white flex items-center justify-center">
+                            {currentQuestionNumberShow}
                         </div>
-                        <button onclick={() => enableStriking = !enableStriking} class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking && '!bg-blue-800 text-white'} border-black border-2 rounded-md">
-                            ABC
-                        </button>
+                        <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
+                            <button onclick={() => questionShouldBeReviewed = !questionShouldBeReviewed} class="cursor-pointer text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-not-allowed'}">
+                                {#if questionShouldBeReviewed}
+                                    <img src={bookmarked} alt="boomarkable"/>
+                                {:else}
+                                    <img src={bookmarkable} alt="boomarkable"/>
+                                {/if}
+                                <span>
+                                    Mark for Review
+                                </span>
+                            </button>
+                            <button onclick={() => enableStriking = !enableStriking} class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking && '!bg-blue-800 text-white'} border-black border-2 rounded-md">
+                                ABC
+                            </button>
+                        </div>
                     </div>
-                </div>
-                <div class="py-3 highlightable-portion">
-                    {@html mathTypeParser(question.stem)}
-                </div>
-                <div class="flex flex-col gap-4">
-                    {#if question.type === 'mcq'}
-                        {#each question.answerOptions as { id, content }, i}
-                            <div class="flex flex-row">
-                                <button
-                                        onclick={() => (!history && (!enableStriking || !eliminated[id]) && (selectedOption = i))}
-                                        class="flex flex-row items-center w-full relative {eliminated[id] && enableStriking && 'before:-ml-4 before:border-1 before:w-full opacity-50 !cursor-not-allowed before:top-1/2 before:-translate-y-1/2 before:absolute'}
+                    <div class="py-3 highlightable-portion">
+                        {@html mathTypeParser(question.stem)}
+                    </div>
+                    <div class="flex flex-col gap-4">
+                        {#if question.type === 'mcq'}
+                            {#each question.answerOptions as { id, content }, i}
+                                <div class="flex flex-row">
+                                    <button
+                                            onclick={() => (!history && (!enableStriking || !eliminated[id]) && (selectedOption = i))}
+                                            class="flex flex-row items-center w-full relative {eliminated[id] && enableStriking && 'before:-ml-4 before:border-1 before:w-full opacity-50 !cursor-not-allowed before:top-1/2 before:-translate-y-1/2 before:absolute'}
                                 py-3 px-4 border-2 border-neutral-500 gap-5
                                 rounded-lg cursor-pointer hover:bg-blue-300/50 {selectedOption === i && '!bg-blue-800 text-white'}
                                 transition-colors {isCorrect === id && '!bg-green-800 text-white'} {isWrong === id && '!bg-red-800 text-white'}">
                                 <span class="font-sans flex items-center justify-center w-7 h-7 font-bold border-2 rounded-full grow-0 shrink-0 select-none">
                                     {['A', 'B', 'C', 'D', 'E', 'F'][i]}
                                 </span>
-                                    <span class="text-left">
+                                        <span class="text-left">
                                     {@html mathTypeParser(content)}
                                 </span>
-                                </button>
-                                {#if enableStriking}
-                                    <button
-                                            onclick={() => (eliminated[id] = !eliminated[id])}
-                                            class="flex flex-row items-center justify-center w-16
+                                    </button>
+                                    {#if enableStriking}
+                                        <button
+                                                onclick={() => (eliminated[id] = !eliminated[id])}
+                                                class="flex flex-row items-center justify-center w-16
                                     rounded-lg cursor-pointer group">
                                     <span class="transition-colors group-hover:bg-blue-500/50 relative before:border-1 before:w-3 before:absolute font-sans flex items-center justify-center w-5 h-5 text-xs border-2 rounded-full grow-0 shrink-0 select-none">
                                         {['A', 'B', 'C', 'D', 'E', 'F'][i]}
                                     </span>
-                                    </button>
+                                        </button>
+                                    {/if}
+                                </div>
+                            {/each}
+                        {:else}
+                            <div class="flex flex-row items-center gap-2">
+                                <div class="border-2 rounded-2xl w-24 p-2 font-mono">
+                                    <input disabled={shown} type="text" class="p-2 w-full border-b-2" bind:value={selectedOption}>
+                                </div>
+                                {#if shown}
+                                    {#if isCorrect === selectedOption}
+                                        <div class="text-green-700">Correct!</div>
+                                    {:else}
+                                        <div class="text-red-500">Incorrect.</div>
+                                    {/if}
                                 {/if}
                             </div>
-                        {/each}
-                    {:else}
-                        <div class="flex flex-row items-center gap-2">
-                            <div class="border-2 rounded-2xl w-24 p-2 font-mono">
-                                <input disabled={shown} type="text" class="p-2 w-full border-b-2" bind:value={selectedOption}>
-                            </div>
-                            {#if shown}
-                                {#if isCorrect === selectedOption}
-                                    <div class="text-green-700">Correct!</div>
-                                {:else}
-                                    <div class="text-red-500">Incorrect.</div>
+                        {/if}
+                    </div>
+                    {#if shown}
+                        <div class="flex flex-col p-2 bg-blue-50 rounded-2xl my-4">
+                            <div class="p-2 bg-blue-100 rounded-2xl mb-2">
+                                The answer{question.correct_answer.length > 1 ? 's' : ''} was {question.correct_answer}.
+                                {#if history}
+                                <span class="{!question.keys.includes(history.selected) ? 'text-red-500' : 'text-green-700'}">
+                                    {#if !history.selected}
+                                        You did not answer this question
+                                    {:else}
+                                        You answered {question.type === 'mcq' ? question.answerOptions.find(v => v.id === history.selected)?.content : history.selected}
+                                    {/if}
+                                </span>
                                 {/if}
-                            {/if}
-                        </div>
-                    {/if}
-                </div>
-                {#if shown}
-                    <div class="flex flex-col p-2 bg-blue-50 rounded-2xl my-4">
-                        <div class="p-2 bg-blue-100 rounded-2xl mb-2">
-                            This was a{['A','E','I','O','U'].includes(questionOutside.primary_class_cd_desc.at(0)) ? 'n' : ''}
-                            <b>{questionOutside.primary_class_cd_desc}: {questionOutside.skill_desc}</b> question with
-                            a{['A','E','I','O','U'].includes(questionOutside.difficulty.at(0)) ? 'n' : ''}
-                            <b>{questionOutside.difficulty === 'E' ? 'easy' : questionOutside.difficulty === 'M' ? 'medium' : 'hard'}</b>
-                            difficulty (CB level of <b>{questionOutside.score_band_range_cd}</b>)
-                        </div>
-                        <Button
-                                class="mb-2 cursor-pointer p-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 transition-all rounded-2xl"
-                                resetStyling
-                                onclick={() => {
+                            </div>
+                            <div class="p-2 bg-blue-100 rounded-2xl mb-2">
+                                This was a{['A','E','I','O','U'].includes(questionOutside.primary_class_cd_desc.at(0)) ? 'n' : ''}
+                                <b>{questionOutside.primary_class_cd_desc}: {questionOutside.skill_desc}</b> question with
+                                a{['A','E','I','O','U'].includes(questionOutside.difficulty.at(0)) ? 'n' : ''}
+                                <b>{questionOutside.difficulty === 'E' ? 'easy' : questionOutside.difficulty === 'M' ? 'medium' : 'hard'}</b>
+                                difficulty (CB level of <b>{questionOutside.score_band_range_cd}</b>)
+                            </div>
+                            <Button
+                                    class="mb-2 cursor-pointer p-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 transition-all rounded-2xl"
+                                    resetStyling
+                                    onclick={() => {
                                     navigator.clipboard.writeText(
                                         ((question.type === 'mcq' && question.stimulus) ? `Context: ${question.stimulus}\n` : '') +
                                         `Question: ${question.stem}` +
@@ -294,94 +380,75 @@
                                         })) : '')
                                     )
                                 }}
-                        >
-                            <div class="w-full flex flex-row gap-2 text-black">
-                                <img src={copy} alt="Copy the question">
-                                <span>Copy raw question to clipboard</span>
+                            >
+                                <div class="w-full flex flex-row gap-2 text-black">
+                                    <img src={copy} alt="Copy the question">
+                                    <span>Copy raw question to clipboard</span>
+                                </div>
+                            </Button>
+                            <!--                        <div class="p-2 bg-yellow-400 rounded-2xl">-->
+                            <!--                            Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no-->
+                            <!--                            money in having you get a good score the first time around.-->
+                            <!--                        </div>-->
+                            <div class="p-2 text-base flex flex-col gap-3">
+                                {@html mathTypeParser(question.rationale)}
                             </div>
-                        </Button>
-<!--                        <div class="p-2 bg-yellow-400 rounded-2xl">-->
-<!--                            Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no-->
-<!--                            money in having you get a good score the first time around.-->
-<!--                        </div>-->
-                        <div class="p-2 text-base flex flex-col gap-3">
-                            {@html mathTypeParser(question.rationale)}
                         </div>
-                    </div>
-                {/if}
-            </div>
-        </section>
+                    {/if}
+                </div>
+            </section>
+        {:else}
+            {@render overviewSnippet?.()}
+        {/if}
     </div>
     <hr>
-    <div class="shrink-0 flex flex-row justify-between font-sans p-5 bg-blue-100">
+    <div class="shrink-0 flex flex-row justify-between relative font-sans p-5 bg-blue-100">
         <div class="text-left flex flex-col gap-2 font-bold p-2">
             Smart kid
         </div>
         <div class="text-center absolute right-1/2 translate-x-1/2 gap-2 flex flex-col">
-            <button class="bg-gray-950 text-white py-2 px-4 rounded-md font-bold">
-                Question {currentQuestionNumber} {#if total}of 27{/if}
+            {#if total !== null && showOverviewPrompt}
+                <div transition:fade={{duration: 100, easing: cubicOut}} class="z-500 right-1/2 translate-x-1/2 bottom-14 shadow-2xl absolute min-w-80 flex flex-col items-center justify-center flex-nowrap bg-gray-100 rounded-xl">
+                    {@render miniOverviewSnippet?.()}
+                </div>
+            {/if}
+            <button
+                    onclick={(e) => {e.stopPropagation(); if (total) showOverviewPrompt = !showOverviewPrompt}}
+                    class="{total && 'cursor-pointer'} bg-gray-950 text-white py-2 px-4 rounded-md font-bold flex flex-row items-center justify-center">
+                <span>
+                    {#if currentQuestionNumber === -1}
+                        Overview
+                    {:else}
+                        Question {currentQuestionNumberShow} {#if total}of {total}{/if}
+                    {/if}
+                </span>
+                {#if total}
+                    <img src={dropup} alt="Open" class="h-8 -m-2 pl-2 invert">
+                {/if}
             </button>
         </div>
         <div class="text-right flex flex-row gap-2 items-right">
-            {#if total}
-                <button class="cursor-pointer bg-blue-700
-                hover:bg-blue-600 active:bg-blue-500 transition-colors
-                text-white font-bold px-6 rounded-full py-2">Previous</button>
-            {/if}
-            <Button disabled={selectedOption === undefined} resetStyling class="bg-blue-700
-            {selectedOption !== undefined ? 'hover:bg-blue-600 active:bg-blue-500 cursor-pointer' : '!bg-gray-600'} transition-colors
-            text-white font-bold px-6 rounded-full py-2" onclick={history ? async () => {history.exit()} : !shown ? async () => {
-                let [correct, max] = await submitHandler()
-                maxTries = max
-                if (correct) {
-                    console.log("correct")
-                    if (question.type === 'mcq') {
-                        isCorrect = question.answerOptions[selectedOption].id
-                    } else {
-                        isCorrect = selectedOption.toString()
-                    }
-                    if (max === -1) {
-                        timeToExit = true
-                    }
-                    shown = true
-                } else {
-                    console.log("incorrect")
-                    if (currentTries >= maxTries) {
-                        if (question.type === 'mcq') {
-                            isWrong = question.answerOptions[selectedOption].id
-                            isCorrect = question.keys[0]
-                        } else {
-                            isWrong = selectedOption.toString()
-                            isCorrect = null
-                        }
-                        shown = true
-                    } else {
-                        currentTries++;
-                        await alert("Incorrect answer", `You have ${maxTries - currentTries + 1} ${max - currentTries + 1 === 1 ? 'try' : 'tries'} remaining.`)
-                    }
-                }
-                oldHideTimer = hideTimer
-                hideTimer = false
-            } : timeToExit ? () => exitHandler() : async () => {
-                await nextQuestionHandler()
-                shown = false
-                isCorrect = null
-                isWrong = null
-                hideTimer = oldHideTimer
-            }}>
-                {#if shown}
-                    Next
-                {:else}
-                    Submit
+            {#if history}
+                <Button disabled={total ? false : selectedOption === undefined} resetStyling class="bg-blue-700
+            {!(total ? false : selectedOption === undefined) ? 'hover:bg-blue-600 active:bg-blue-500 cursor-pointer' : '!bg-gray-600'} transition-colors
+            text-white font-bold px-6 rounded-full py-2" onclick={onNextHandler}>
+                    Back
+                </Button>
+            {:else}
+                {#if total}
+                    <Button resetStyling disabled={currentQuestionNumberShow === 1} class="{currentQuestionNumberShow !== 1 ? 'bg-blue-700 hover:bg-blue-600 active:bg-blue-500 cursor-pointer' : '!bg-gray-600'} transition-colors
+                text-white font-bold px-6 rounded-full py-2" onclick={previousQuestionHandler}>Previous</Button>
                 {/if}
-            </Button>
+                <Button disabled={total ? false : selectedOption === undefined} resetStyling class="bg-blue-700
+            {!(total ? false : selectedOption === undefined) ? 'hover:bg-blue-600 active:bg-blue-500 cursor-pointer' : '!bg-gray-600'} transition-colors
+            text-white font-bold px-6 rounded-full py-2" onclick={onNextHandler}>
+                    {#if ((shown || total !== null) && (total === null || currentQuestionNumber !== -1))}
+                        Next
+                    {:else}
+                        Submit
+                    {/if}
+                </Button>
+            {/if}
         </div>
     </div>
 </div>
-
-<style lang="postcss">
-    @reference 'tailwindcss';
-    @layer base {
-
-    }
-</style>

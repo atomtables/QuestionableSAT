@@ -1,4 +1,5 @@
 <script lang="ts">
+    import bookmarked from "$lib/assets/bookmarked.svg"
     import {onMount} from "svelte";
     import {goto} from "$app/navigation";
     import Bluebook from "$lib/components/platformspecific/Bluebook.svelte";
@@ -21,30 +22,20 @@
         }
     } = $props();
 
-    let start = $state()
-    let tries: number = $state()
-    let ignoreViewed = $state()
-    let maxStreak: number = $state()
-    let currentStreak = $state(0)
-    let timerInt: number = $state()
-    let timer: string = $state()
-    let timerHandler: number = $state()
+    let amtQuestions: number = $state()
+    let amtTime = $state(0)
+    let ignoreViewed = $state(false)
 
-    let currentScoreTarget: number = $state()
-    let currentQuestionNumber: number = $state(0)
-    let currentQuestion: QuestionDetail = $state()
-    let currentQuestionOutside: Question = $state()
-    let selectedOption: number = $state()
-    let scoreTargetIncrease: number = $state()
-    let decreased: boolean = $state(false)
-
-    let timetogo: boolean = $state(false)
-
-    let currentQuestionHistory: [QuestionDetail, Question, {
-        correct: boolean,
+    let questions: [Question, QuestionDetail, {
         selected: string,
-        timeInt: number
+        review: boolean
     }][] = $state([])
+    let currentQuestionIndex = $state(0)
+    let currentQuestionIndexForDisplay = $derived(currentQuestionIndex + 1)
+    let currentQuestion: [Question,QuestionDetail,{selected:string, review:boolean}] =
+        $derived(currentQuestionIndex !== -1 ? ((currentQuestionIndex < questions.length) ? questions[currentQuestionIndex] : null) : [null, null, {selected: null,review:false}])
+    let timetogo = $state(false)
+    let fake = $derived(null)
 
     function getRandomFromArray<T>(arr: Array<T>) {
         return arr[Math.floor(Math.random() * arr.length)]
@@ -67,7 +58,7 @@
             skillsInSelectedSection.some(v => v.text === question.skill_desc) &&
             (!selectedDetails.ignoreLive || (!data.lookup.mathLiveItems.includes(question.external_id) && !data.lookup.readingLiveItems.includes(question.external_id)))
     }
-    async function getNextQuestion() {
+    async function getQuestion(loadedQuestions: string[]): Promise<[Question, QuestionDetail]> {
         // filter by matching score target
         let seenInSessions: string[];
         try {
@@ -79,9 +70,7 @@
         }
         let bank: Question[] = (await data.questions)
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
-            .filter(v => v.score_band_range_cd < currentScoreTarget + 1 && v.score_band_range_cd > currentScoreTarget - 1) // within score range
-            .filter(v => !currentQuestionHistory.some(x => x[0].externalid === v.external_id) || !currentQuestionHistory.some(x => x[0].externalid === v.ibn)) // ignore seen questions
-        console.log(bank)
+            .filter(v => !loadedQuestions.some(x => x === v.external_id || x === v.ibn))
         if (ignoreViewed) {
             bank = bank.filter(v => !seenInSessions.includes(v.external_id))
         }
@@ -89,10 +78,9 @@
             await alert("Out of questions", "You have reached the end of your selected questions.")
             return
         }
-        let random = getRandomFromArray(bank)
-        let val = null;
+        let random: Question = getRandomFromArray(bank)
+        let val: QuestionDetail = null;
         while (true) {
-            console.log(random)
             let res = await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
                 credentials: "omit",
                 headers: {
@@ -102,7 +90,7 @@
                 },
                 referrer: "https://satsuitequestionbank.collegeboard.org/",
                 body: JSON.stringify({
-                    external_id: random.external_id || random.uId
+                    external_id: random.external_id
                 }),
                 method: "POST",
                 mode: "cors"
@@ -119,102 +107,92 @@
                     }
                 }
             }
-            currentQuestion = val
-            break;
+            if (random === null || val === null) continue;
+            return [random, val]
         }
-        currentQuestionOutside = random
-        currentQuestionNumber++;
-        selectedOption = undefined
-        scoreTargetIncrease = random.score_band_range_cd / 20
-        decreased = false
-        timerInt = 0
-        timer = '0:00'
-        timerHandler = setInterval(() => {
-            timerInt++;
-            timer = `${Math.floor(timerInt / 60)}:${timerInt % 60 < 10 ? '0' + (timerInt % 60).toString() : (timerInt % 60).toString()}`
-        }, 1000)
     }
-    async function submitHandler(): Promise<[boolean, number]> {
-        let seenInSessions: string[];
-        try {
-            seenInSessions = JSON.parse(localStorage.getItem("seen"));
-        } catch {
-            seenInSessions = []
-            console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
-            localStorage.setItem("seen", JSON.stringify([]))
+    async function getQuestions() {
+        let loadedQuestions: string[] = []
+        for (let i = 0; i < amtQuestions; i++) {
+            let res = getQuestion(loadedQuestions)
+            res.then(res => {
+                questions.push([...res, {
+                    selected: "",
+                    review: false
+                }])
+                loadedQuestions.push(questions.at(-1)[0].external_id)
+            })
         }
-        console.log(currentQuestion.keys, selectedOption)
-        clearInterval(timerHandler)
-        currentQuestionHistory.push([currentQuestion, currentQuestionOutside, {
-            correct: currentQuestion.type === 'mcq' ?
-                currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) :
-                currentQuestion.keys.includes(selectedOption.toString()),
-            selected: currentQuestion.type === 'mcq' ?
-                currentQuestion.answerOptions[selectedOption].id :
-                selectedOption.toString(),
-            timeInt: timerInt
-        }])
-        seenInSessions.push(currentQuestion.externalid)
-        localStorage.setItem("seen", JSON.stringify(seenInSessions))
-        if (currentQuestion.type === 'mcq' ?
-            currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) :
-            currentQuestion.keys.includes(selectedOption.toString())) {
-            currentScoreTarget += scoreTargetIncrease
-            currentScoreTarget = Math.min(currentScoreTarget, 7)
-            currentStreak += 1
-            if (maxStreak && currentStreak >= maxStreak)
-                return [true, -1]
-            return [true, 0]
+    }
+    async function nextQuestion() {
+        if (currentQuestionIndexForDisplay === amtQuestions) {
+            currentQuestionIndex = -1
         } else {
-            if (!decreased) {
-                currentScoreTarget -= scoreTargetIncrease
-                currentScoreTarget = Math.max(currentScoreTarget, 3)
-            }
-            decreased = true
-            currentStreak = 0
-            return [false, tries]
+            currentQuestionIndex++;
         }
     }
-    async function exit() {
-        timetogo = true
-        clearTimeout(timerHandler)
+    async function prevQuestion() {
+        if (currentQuestionIndex === -1) {
+            currentQuestionIndex = amtQuestions - 1
+        } else {
+            currentQuestionIndex--;
+        }
     }
 
+    let currentQuestionHistory: [QuestionDetail, Question, {
+        correct: boolean,
+        selected: string,
+        reviewed: boolean
+    }][] = $state([])
+    async function submitHandler() {
+        for (let [dat, question, {selected, review}] of questions) {
+            console.log(dat, question, selected, review)
+            currentQuestionHistory.push([
+                question, dat, {
+                    correct: question.type === 'mcq' ? question.keys.includes(question.answerOptions[selected]?.id || null) : question.keys.includes(selected),
+                    selected: question.type === 'mcq' ? question.answerOptions[selected]?.id : selected,
+                    reviewed: review
+                }
+            ])
+        }
+        timetogo = true;
+        clearInterval(timerHandler)
+    }
+
+    let timerInt: number = $state()
+    let timer: string = $state()
+    let timerHandler: number = $state()
 
     onMount(() => {
         const urlParams = new URLSearchParams(window.location.search);
-        start = urlParams.get("start")
-        tries = parseInt(urlParams.get("tries"))
-        ignoreViewed = urlParams.get("ignoreViewed") || true
-        maxStreak = isNaN(parseInt(urlParams.get("streak"))) ? 0 : parseInt(urlParams.get("streak"))
+        amtQuestions = parseInt(urlParams.get("questions"))
+        amtTime = parseInt(urlParams.get("time"))
+        ignoreViewed = !!(urlParams.get("ignoreViewed")) || true
 
-        if (!start || isNaN(tries)) goto("/questiongets")
+        if (isNaN(amtQuestions) || isNaN(amtTime)) goto("/questiongets")
 
-        if (start === 'e') {
-            currentScoreTarget = 3
-        } else if (start === 'm') {
-            currentScoreTarget = 5
-        } else if (start === 'h') {
-            currentScoreTarget = 7
-        }
+        timerInt = amtTime
+        timer = `${amtTime}:00`
+        timerHandler = setInterval(() => {
+            timerInt--;
+            timer = `${Math.floor(timerInt / 60)}:${timerInt % 60 < 10 ? '0' + (timerInt % 60).toString() : (timerInt % 60).toString()}`
+            if (timerInt === -1) {
+                submitHandler();
+            }
+        }, 1000)
 
-        getNextQuestion()
+        if (questions.length < 1) getQuestions();
 
         return () => {
             clearInterval(timerHandler)
         }
     })
-
     let currentlyReviewing = $state(null)
     let currentlyReviewed = $derived(currentlyReviewing !== null && currentlyReviewing + 1)
-    let currentlyTimered = $derived(`${Math.floor(currentQuestionHistory[currentlyReviewing][2].timeInt / 60)}:${currentQuestionHistory[currentlyReviewing][2].timeInt % 60 < 10 ? '0' + (currentQuestionHistory[currentlyReviewing][2].timeInt % 60).toString() : (currentQuestionHistory[currentlyReviewing][2].timeInt % 60).toString()}`)
     let currentlySelectedHistory = $derived(
         currentQuestionHistory[currentlyReviewing][0].type === 'mcq' ?
-        (currentQuestionHistory[currentlyReviewing][0] as QuestionDetailMCQ).answerOptions.findIndex(v => v.id === currentQuestionHistory[currentlyReviewing][2].selected) :
+            (currentQuestionHistory[currentlyReviewing][0] as QuestionDetailMCQ).answerOptions.findIndex(v => v.id === currentQuestionHistory[currentlyReviewing][2].selected) :
             currentQuestionHistory[currentlyReviewing][2].selected
-    )
-    let statusThing = $derived(
-        `Difficulty between ${(currentScoreTarget - 1).toFixed(2)} to ${(currentScoreTarget + 1).toFixed(2)}`
     )
 </script>
 
@@ -222,7 +200,7 @@
     {#if currentlyReviewing !== null}
         <div class="z-10000" transition:slide|global>
             <Bluebook
-                    bind:timer={currentlyTimered}
+                    timer={null}
                     bind:question={currentQuestionHistory[currentlyReviewing][0]}
                     bind:questionOutside={currentQuestionHistory[currentlyReviewing][1]}
                     bind:currentQuestionNumber={currentlyReviewing}
@@ -238,7 +216,6 @@
                         selected: currentQuestionHistory[currentlyReviewing][2].selected,
                         exit: () => currentlyReviewing = null
                     }}
-                    bind:status={statusThing}
             />
         </div>
     {:else}
@@ -283,18 +260,18 @@
                                 <td>Skill</td>
                                 <td>Difficulty</td>
                                 <td>Result</td>
-                                <td>Time taken</td>
+                                <td>Marked?</td>
                             </tr>
                             </thead>
                             <tbody>
-                            {#each currentQuestionHistory as [_, data, {correct, timeInt}], i}
+                            {#each currentQuestionHistory as [_, data, {correct, reviewed}], i}
                                 <tr class="hover:bg-blue-800/50 active:bg-blue-700/50 transition-colors cursor-pointer" onclick={() => currentlyReviewing = i} aria-roledescription="Review question">
                                     <td>{i + 1}</td>
                                     <td>{data.primary_class_cd_desc}</td>
                                     <td>{data.skill_desc}</td>
                                     <td>{data.difficulty === 'E' ? 'Easy' : data.difficulty === 'M' ? 'Medium' : "Hard"}</td>
                                     <td>{correct ? '✅' : '❌'}</td>
-                                    <td>{`${Math.floor(timeInt / 60)}:${timeInt % 60 < 10 ? '0' + (timeInt % 60).toString() : (timeInt % 60).toString()}`}</td>
+                                    <td>{#if reviewed}Bookmarked{/if}</td>
                                 </tr>
                             {/each}
                             </tbody>
@@ -311,21 +288,60 @@
         </div>
     {/if}
 {:else}
-    {#if currentQuestion}
+    {#if (questions.length === amtQuestions && currentQuestion) || currentQuestionIndex === -1}
         <div transition:slide|global class="z-10000">
             <Bluebook
-                    bind:timer
-                    bind:question={currentQuestion}
-                    bind:questionOutside={currentQuestionOutside}
-                    bind:currentQuestionNumberShow={currentQuestionNumber}
-                    nextQuestionHandler={getNextQuestion}
-                    bind:selectedOption
+                    bind:timer={timer}
+                    bind:question={currentQuestion[1]}
+                    bind:questionOutside={currentQuestion[0]}
+                    bind:currentQuestionNumberShow={currentQuestionIndexForDisplay}
+                    previousQuestionHandler={prevQuestion}
+                    nextQuestionHandler={nextQuestion}
+                    bind:currentQuestionNumber={currentQuestionIndex}
+                    bind:selectedOption={currentQuestion[2].selected}
                     {submitHandler}
-                    exitHandler={exit}
-                    total={null}
+                    exitHandler={() => null}
+                    bind:questionShouldBeReviewed={currentQuestion[2].review}
+                    total={amtQuestions}
                     history={null}
-                    bind:status={statusThing}
-            />
+                    bind:status={fake}
+            >
+                {#snippet overviewSnippet()}
+                    <div class="max-w-4xl flex flex-col items-center justify-center m-auto">
+                        <h2 class="text-4xl font-bold font-sans">Questions and Answers</h2>
+                        <div class="grid grid-cols-8">
+                            {#each questions as [_, __, {selected, review}], i}
+                                <button onclick={() => currentQuestionIndex = i}
+                                        class="relative cursor-pointer w-14 h-14 text-3xl font-bold font-sans flex items-center justify-center {isNaN(parseInt(selected)) ? 'border-dashed border-2 border-black text-black hover:bg-blue-100' : 'bg-blue-900 text-white'}  m-3">
+                                    {i+1}
+                                    {#if review}
+                                        <img src={bookmarked} alt="bookmarked" class="bg-white h-6 absolute -right-2 -top-2">
+                                    {/if}
+                                </button>
+                            {/each}
+                        </div>
+                    </div>
+                {/snippet}
+                {#snippet miniOverviewSnippet()}
+                    <div class="text-2xl font-bold pt-5">Questions and Answers</div>
+                    <div class="grid grid-cols-8 w-full gap-2 p-5">
+                        {#each questions as [_, __, {selected, review}], i}
+                            <button onclick={() => currentQuestionIndex = i}
+                                    class="relative cursor-pointer w-8 h-8 text-base font-bold font-sans flex items-center justify-center {currentQuestionIndex === i && 'bg-blue-200'} {isNaN(parseInt(selected)) ? 'border-dashed border-2 border-black text-blue-900 hover:bg-blue-100' : 'bg-blue-900 !text-white'}">
+                                {i+1}
+                                {#if review}
+                                    <img src={bookmarked} alt="bookmarked" class="bg-white h-4 absolute -right-1 -top-1">
+                                {/if}
+                            </button>
+                        {/each}
+                    </div>
+                    <div class="pb-5">
+                        <Button resetStyling class="border-blue-700 border-2 text-blue-700 hover:text-white hover:bg-blue-600 active:bg-blue-500 cursor-pointer transition-colors font-bold px-3 rounded-full py-1" onclick={() => currentQuestionIndex = -1}>
+                            Go to Review Page
+                        </Button>
+                    </div>
+                {/snippet}
+            </Bluebook>
         </div>
     {:else}
         <Dialog open={true} title="Getting your first question..." loading />
