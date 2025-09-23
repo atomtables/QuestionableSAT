@@ -112,8 +112,7 @@
                     You have {filtered.length} questions available to go through right now,
                     out of which
                     <button class="underline cursor-pointer" onclick={async () => openResetDialog = true}>you have
-                        viewed {viewedQuestions.filter(v => questions.some(x => x.external_id === v || x.ibn === v)).length}
-                        .
+                        viewed {viewedQuestions.filter(v => questions.some(x => x.external_id === v || x.ibn === v)).length + '.'}
                     </button>
                 </div>
                 <div class="pt-0">

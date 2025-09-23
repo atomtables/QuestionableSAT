@@ -375,8 +375,8 @@
                                     navigator.clipboard.writeText(
                                         ((question.type === 'mcq' && question.stimulus) ? `Context: ${question.stimulus}\n` : '') +
                                         `Question: ${question.stem}` +
-                                        ((question.type === 'mcq' && question.answerOptions) ? (`\nChoices: ` + (question).answerOptions.map(({id, content}, i) => {
-                                            `\n${['A', 'B', 'C', 'D', 'E', 'F'][i]}: ${content}`
+                                        ((question.type === 'mcq' && question.answerOptions) ? (`\nChoices: ` + question.answerOptions.map(({id, content}, i) => {
+                                            return `\n${['A', 'B', 'C', 'D', 'E', 'F'][i]}: ${content}`
                                         })) : '')
                                     )
                                 }}
