@@ -179,6 +179,23 @@
                                             title={topic.text}
                                             description={`${topic.skill.filter(s => setup.subtopics[s.id]).length}/${topic.skill.length} selected`}
                                     >
+                                        {#snippet shelf()}
+                                            <Button transparent class="-mt-2.5" onclick={() => {
+                                                let reset = true;
+                                                for (let skill of topic.skill) {
+                                                    if (!setup.subtopics[skill.id]) reset = false;
+                                                    setup.subtopics[skill.id] = true;
+                                                }
+                                                if (reset) {
+                                                    for (let skill of topic.skill) {
+                                                        if (!setup.subtopics[skill.id]) reset = false;
+                                                        setup.subtopics[skill.id] = false;
+                                                    }
+                                                }
+                                            }}>
+                                                select/reset
+                                            </Button>
+                                        {/snippet}
                                         {#each topic.skill as skill}
                                             <div class="flex items-center gap-3 ml-4">
                                                 <Input

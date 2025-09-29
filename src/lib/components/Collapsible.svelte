@@ -4,7 +4,7 @@
     import Button from "$lib/components/Button.svelte";
     import {slide} from "svelte/transition";
 
-    let { title, description, children, display = $bindable() } = $props()
+    let { title, description, children, shelf, display = $bindable() } = $props()
 </script>
 
 <div class="w-full to-cyan-700 from-slate-700 bg-gradient-to-r {display ? 'py-3' : 'pt-3'} px-2 transition-all">
@@ -17,7 +17,8 @@
         </div>
         <div class="grow"></div>
         <div class="grow"></div>
-        <div class="flex flex-row">
+        <div class="flex flex-row items-center justify-center">
+            {@render shelf?.()}
             <Button
                     transparent
                     class="w-8 h-8 mb-2 font-mono hover:bg-neutral-500/25 active:bg-neutral-500/50 grid place-items-center transition-colors"
