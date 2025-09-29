@@ -32,6 +32,7 @@
 
     let currentScoreTarget: number = $state()
     let currentQuestionNumber: number = $state(0)
+    let currentQuestionNumberIndex: number = $state(-1)
     let currentQuestion: QuestionDetail = $state()
     let currentQuestionOutside: Question = $state()
     let selectedOption: number = $state()
@@ -124,6 +125,7 @@
         }
         currentQuestionOutside = random
         currentQuestionNumber++;
+        currentQuestionNumberIndex++;
         selectedOption = undefined
         scoreTargetIncrease = random.score_band_range_cd / 20
         decreased = false
@@ -325,6 +327,9 @@
                     total={null}
                     history={null}
                     bind:status={statusThing}
+                    questionShouldBeReviewed={null}
+                    bind:currentQuestionNumber={currentQuestionNumberIndex}
+                    previousQuestionHandler={() => null}
             />
         </div>
     {:else}

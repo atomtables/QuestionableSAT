@@ -69,7 +69,7 @@
             await goto(`/questiongets/khanstyle?start=${['e','m','h'][startDiff]}&tries=${maxTries}&ignoreViewed=${hideQuestions}&streak=${answerNumber}`)
         else if (value === 1) {
             console.log(time, parseInt(time), parseInt(time) * 60)
-            await goto(`/questiongets/practicetest?questions=${parseInt(maxQuestions)}&time=${parseInt(time) * 60}&ignoreViewed=${hideQuestions}`)
+            await goto(`/questiongets/practicetest?questions=${parseInt(maxQuestions)}&time=${parseInt(time) * 60}&ignoreViewed=${hideQuestions}&diff=${['E','M','H'][startDiff]}`)
         }
     }
 </script>
@@ -192,6 +192,15 @@
                                     Must be a number
                                 </div>
                             {/if}
+                        </div>
+                        <div class="flex flex-row justify-center items-center -my-1">
+                            <Input
+                                    bind:value={startDiff}
+                                    name="Difficulty Skew"
+                                    type="dropdown"
+                                    elements={["Easy", "Medium", "Hard"]}
+                                    title="Choose whether the bell curve of difficulty should be skewed. Medium is the best option here."
+                            />
                         </div>
                         <div class="flex flex-row justify-center items-center px-1 gap-2">
                             <Input
