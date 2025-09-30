@@ -15,3 +15,5 @@ export let questions: [Promise<Question[]>] = $state([new Promise(() => null)])
 export const setQuestions = (val) => {
     questions[0] = val;
 }
+
+export let onlineStatus: [Boolean] = $state([true])
