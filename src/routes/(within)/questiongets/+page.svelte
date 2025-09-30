@@ -346,6 +346,10 @@
                         </div>
                     </div>
                 {/if}
+            {:catch error}
+                <div class="text-red-500">
+                    We faced an error...: {error.message}
+                </div>
             {/await}
         </div>
 

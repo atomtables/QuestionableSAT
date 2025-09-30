@@ -17,5 +17,5 @@
 {#if tryCatch(() => Object.entries(lookup?.lookupData).length) > 0}
     {@render children()}
 {:else}
-    <Dialog title="Loading..." description="Getting the topics available from Collegeboard. This shouldn't take long..." loading/>
+    <Dialog open={true} title="Loading..." description="Getting the topics available from Collegeboard. This shouldn't take long..." loading/>
 {/if}
