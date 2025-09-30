@@ -5,7 +5,7 @@
     import Dialog from "$lib/components/Dialog.svelte";
     import type {LookupData, Question, QuestionDetail, QuestionDetailMCQ} from "$lib/types/types";
     import { alert } from "$lib/components/Dialog.svelte"
-    import {selectedDetails} from "$lib/clientstate/states.svelte";
+    import {lookup, questions, selectedDetails} from "$lib/clientstate/states.svelte";
     import Input from "$lib/components/Input.svelte";
     import Button from "$lib/components/Button.svelte";
     import {slide} from "svelte/transition";
@@ -47,7 +47,7 @@
     function getRandomFromArray<T>(arr: Array<T>) {
         return arr[Math.floor(Math.random() * arr.length)]
     }
-    const lookupData = $derived(Object.values(data.lookup.lookupData.domain)[selectedDetails.section])
+    const lookupData = $derived(Object.values(lookup.lookupData.domain)[selectedDetails.section])
     const appliedFilters = (question: Question) => {
         let skillsInSelectedSection = []
         for (let topic of lookupData) for (let skill of topic.skill) skillsInSelectedSection.push(skill)
@@ -63,7 +63,7 @@
 
         return classesInSelectedSection.some(v => v.primaryClassCd === question.primary_class_cd) &&
             skillsInSelectedSection.some(v => v.text === question.skill_desc) &&
-            (!selectedDetails.ignoreLive || (!data.lookup.mathLiveItems.includes(question.external_id) && !data.lookup.readingLiveItems.includes(question.external_id)))
+            (!selectedDetails.ignoreLive || (!lookup.mathLiveItems.includes(question.external_id) && !lookup.readingLiveItems.includes(question.external_id)))
     }
     async function getNextQuestion() {
         let seenInSessions: string[];
@@ -74,7 +74,7 @@
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
             localStorage.setItem("seen", JSON.stringify([]))
         }
-        let bank: Question[] = (await data.questions)
+        let bank: Question[] = (await questions[0])
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
             .filter(v => !currentQuestionHistory.some(x => x[0].externalid === v.external_id) || !currentQuestionHistory.some(x => x[0].externalid === v.ibn)) // ignore seen questions
         console.log(bank)

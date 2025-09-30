@@ -11,13 +11,14 @@
         QuestionDetailMCQ,
     } from "$lib/types/types";
     import { alert } from "$lib/components/Dialog.svelte";
-    import { selectedDetails } from "$lib/clientstate/states.svelte";
+    import { lookup, selectedDetails } from "$lib/clientstate/states.svelte";
     import Input from "$lib/components/Input.svelte";
     import Button from "$lib/components/Button.svelte";
     import { slide } from "svelte/transition";
     import Spinner from "$lib/components/Spinner.svelte";
     import { loadMCQQuestionThroughJSON } from "$lib/helpers/loadjson";
     import Table from "$lib/components/Table.svelte";
+    import { questions as QuestionData } from "$lib/clientstate/states.svelte";
 
     let {
         data,
@@ -67,7 +68,7 @@
         return arr[Math.floor(Math.random() * arr.length)];
     }
     const lookupData = $derived(
-        Object.values(data.lookup.lookupData.domain)[selectedDetails.section],
+        Object.values(lookup.lookupData.domain)[selectedDetails.section],
     );
     const appliedFilters = (question: Question) => {
         let skillsInSelectedSection = [];
@@ -97,8 +98,8 @@
                 (v) => v.text === question.skill_desc,
             ) &&
             (!selectedDetails.ignoreLive ||
-                (!data.lookup.mathLiveItems.includes(question.external_id) &&
-                    !data.lookup.readingLiveItems.includes(
+                (!lookup.mathLiveItems.includes(question.external_id) &&
+                    !lookup.readingLiveItems.includes(
                         question.external_id,
                     )))
         );
@@ -119,7 +120,7 @@
             localStorage.setItem("seen", JSON.stringify([]));
         }
         // the difficulty descriptor for each, how easy or hard it is
-        let bank: Question[] = (await data.questions)
+        let bank: Question[] = (await QuestionData[0])
             .filter((v) => appliedFilters(v)) // fits the filters the user has applied
             .filter(
                 (v) =>

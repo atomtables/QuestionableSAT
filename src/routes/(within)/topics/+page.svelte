@@ -9,6 +9,7 @@
     import {selectedDetails} from "$lib/clientstate/states.svelte";
     import {fade} from "svelte/transition";
     import {cubicIn} from "svelte/easing";
+    import {lookup} from "$lib/clientstate/states.svelte";
 
     const setup = $state({
         test: null as number | null,
@@ -21,7 +22,7 @@
     let currentStep = $state(1);
 
     let { data }: {data: {lookup: LookupData}}
-        = $props(); // assumes data.lookup.lookupData etc.
+        = $props(); // assumes lookup.lookupData etc.
 
     onMount(() => {
         // reset on mount if needed
@@ -62,7 +63,7 @@
         }
         if (currentStep === 2) {
             if (typeof setup.section !== 'number') return;
-            Object.values(data.lookup.lookupData.domain)[setup.section].forEach(v => {
+            Object.values(lookup.lookupData.domain)[setup.section].forEach(v => {
                 v.skill.forEach(({id}) => {
                     setup.subtopics[id] = true
                 })
@@ -72,7 +73,7 @@
             if (!Object.values(setup.subtopics).some(v => v)) return;
             Object.entries(setup.subtopics).forEach(([k, v]) => {
                 if (v) {
-                    Object.values(data.lookup.lookupData.domain)[setup.section].forEach(x => {
+                    Object.values(lookup.lookupData.domain)[setup.section].forEach(x => {
                         x.skill.forEach(({id}) => {
                             // @ts-ignore
                             if (parseInt(id) === parseInt(k)) {
@@ -127,7 +128,7 @@
                 <div class="text-2xl font-bold">Choose your exam</div>
                 <div class="text-gray-300">Select the exam from the options that CollegeBoard has made publicly available below.</div>
 
-                {#each data.lookup.lookupData.assessment as { id, text }, i}
+                {#each lookup.lookupData.assessment as { id, text }, i}
                     <div class="flex items-center gap-3">
                         <Input
                                 type="radio"
@@ -148,7 +149,7 @@
                 <div class="text-2xl font-bold">Choose your test section</div>
                 <div class="text-gray-300">Get the most out of your practice by selecting the section you want to focus on.</div>
 
-                {#each data.lookup.lookupData.test as { id, text }, i}
+                {#each lookup.lookupData.test as { id, text }, i}
                     <div class="flex items-center gap-3">
                         <Input
                                 type="radio"
@@ -172,7 +173,7 @@
                 {#if typeof setup.section === 'number'}
                     <div class="max-h-60 overflow-y-auto space-y-3 mt-4">
                         <!--// @ts-ignore -->
-                        {#each (Object.values(data.lookup.lookupData.domain)[setup.section]) as topic}
+                        {#each (Object.values(lookup.lookupData.domain)[setup.section]) as topic}
                             <div class="flex flex-col space-y-2">
                                 {#if topic.skill}
                                     <Collapsible
@@ -235,11 +236,11 @@
 
                 <div class="space-y-2">
                     <p><span class="font-semibold">Exam:</span>
-                        {setup.test !== null ? data.lookup.lookupData.assessment[setup.test].text : '—'
+                        {setup.test !== null ? lookup.lookupData.assessment[setup.test].text : '—'
                         }
                     </p>
                     <p><span class="font-semibold">Section:</span>
-                        {setup.section !== null ? data.lookup.lookupData.test[setup.section].text : '—'}
+                        {setup.section !== null ? lookup.lookupData.test[setup.section].text : '—'}
                     </p>
                 </div>
 
@@ -248,7 +249,7 @@
                     <ul class="list-disc list-inside ml-4">
                         {#each Object.entries(setup.topics).filter(([_, v]) => v) as [topicId, _]}
                             { "" /* @ts-ignore */ }
-                            {@const topic = Object.values(data.lookup.lookupData.domain)[setup.section].find(t => parseInt(t.id) === parseInt(topicId))}
+                            {@const topic = Object.values(lookup.lookupData.domain)[setup.section].find(t => parseInt(t.id) === parseInt(topicId))}
                             <li>
                                 {
                                     topic.text

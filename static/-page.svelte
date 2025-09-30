@@ -33,7 +33,7 @@
                 <div class="pl-0.5">
                     Select the exam from the options that CollegeBoard has made publicly available below.
                 </div>
-                {#each data.lookup.lookupData.assessment as {id, text}, i}
+                {#each lookup.lookupData.assessment as {id, text}, i}
                     <div class="flex flex-row justify-center items-center gap-2 -my-2">
                         <Input type="radio" class="w-min" radioGroup="assessment" radioId={i} bind:value={selectedDetails.test} />
                         <div class="w-full">{text}</div>
@@ -50,7 +50,7 @@
                 <div class="pl-0.5">
                     Get the most out of your practice by selecting the section and topics you want to focus on.
                 </div>
-                {#each data.lookup.lookupData.test as {id, text}, i}
+                {#each lookup.lookupData.test as {id, text}, i}
                     <div class="flex flex-row justify-center items-center gap-2 -my-2">
                         <Input type="radio" class="w-min" radioGroup="assessment" radioId={i} bind:value={selectedDetails.section} />
                         <div class="w-full">{text}</div>
@@ -72,7 +72,7 @@
                     </div>
                     {#if typeof selectedDetails.section === 'number'}
                         <div class="flex flex-col gap-0 max-h-60 overflow-y-auto -mt-4 pl-0.5" transition:slide>
-                            {#each Object.values(data.lookup.lookupData?.domain)[selectedDetails.section] as topic}
+                            {#each Object.values(lookup.lookupData?.domain)[selectedDetails.section] as topic}
                                 <div class="flex flex-row justify-center items-center gap-2">
                                     <Input
                                             type="checkbox"
@@ -90,7 +90,7 @@
                     {#if selectedDetails.topics}
                         {#each Object.keys(selectedDetails.topics) as key, i}
                             {#if selectedDetails.topics[key] && typeof selectedDetails.section === 'number'}
-                                {@const value = Object.values(data.lookup.lookupData.domain)[selectedDetails.section]?.[key - 1]}
+                                {@const value = Object.values(lookup.lookupData.domain)[selectedDetails.section]?.[key - 1]}
                                 <div transition:slide>
                                     {#if value && value.skill}
                                         <div transition:slide>

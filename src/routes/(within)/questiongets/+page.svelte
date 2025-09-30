@@ -3,7 +3,7 @@
     import { onMount } from "svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import type { LookupData, Question } from "$lib/types/types";
-    import { selectedDetails } from "$lib/clientstate/states.svelte";
+    import { lookup, questions, selectedDetails } from "$lib/clientstate/states.svelte";
     import Input from "$lib/components/Input.svelte";
     import { slide } from "svelte/transition";
     import Button from "$lib/components/Button.svelte";
@@ -21,7 +21,7 @@
 
     onMount(() => {});
     const lookupData = $derived(
-        Object.values(data.lookup.lookupData.domain)[selectedDetails.section],
+        Object.values(lookup.lookupData.domain)[selectedDetails.section],
     );
     const appliedFilters = (question: Question) => {
         let skillsInSelectedSection = [];
@@ -51,8 +51,8 @@
                 (v) => v.text === question.skill_desc,
             ) &&
             (!selectedDetails.ignoreLive ||
-                (!data.lookup.mathLiveItems.includes(question.external_id) &&
-                    !data.lookup.readingLiveItems.includes(
+                (!lookup.mathLiveItems.includes(question.external_id) &&
+                    !lookup.readingLiveItems.includes(
                         question.external_id,
                     )))
         );
@@ -135,7 +135,7 @@
             class="space-y-2 bg-gray-800 rounded-lg p-6 shadow-md"
             transition:slide={{ duration: 50 }}
         >
-            {#await data.questions}
+            {#await questions[0]}
                 <div
                     class="flex flex-row gap-2 p-5 items-center justify-center"
                 >
