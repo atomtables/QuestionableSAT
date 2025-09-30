@@ -18,7 +18,8 @@
         you need to succeed. QuestionableSAT allows you to use CollegeBoard's own materials to exercise the best method
         of studying for the (P)SAT: practice.
     </div>
-    <div>
+    <div class="flex flex-row gap-5">
         <Button onclick={() => goto("/topics")}>Get started</Button>
+        <Button onclick={() => goto("/about")}>About</Button>
     </div>
 </div>
