@@ -15,6 +15,24 @@ export type LookupData = {
     readingLiveItems: string[]
     // state offerings (irrelevant)
 }
+export function isLookupData(json: any) {
+    if (!json.lookupData || !json.mathLiveItems || !json.readingLiveItems) return false;
+    const l = json.lookupData;
+    if (!l.assessment || !l.test || !l.domain) {
+        console.log(" no lookup data")
+        return false;
+    }
+    for (let key in l.domain) {
+        let kl = l.domain[key]
+        for (let k of kl) {
+            if (!k.text || k.id === null || !k.primaryClassCd || !k.skill) {
+                console.log("keys are wrong", key, l.domain[key], k.text, k.id, k.primaryClassCd, k.skill)
+                return false;
+            }
+        }
+    }
+    return true;
+}
 export type Question = {
     updateDate: number, // date question was created
     pPcc: string, // test name + # + primary_class_cd
@@ -27,9 +45,18 @@ export type Question = {
     program: string, // SAT, PSAT, etc
     primary_class_cd_desc: string, // full form of primary_class_cd
     ibn: null | string, // unknown
-    external_id: string, // important for identifying active questions
+    external_id: null | string, // important for identifying active questions
     primary_class_cd: string, // 3 letter code about whic topic
     difficulty: 'E' | 'M' | 'H' // easy, medium, hard
+}
+export function isQuestionArray(json: any) {
+    if (!Array.isArray(json)) return false;
+    for (const item of json) {
+        if (!item.difficulty || !item.primary_class_cd || !item.score_band_range_cd || !item.program) {
+            return false;
+        }
+    }
+    return true;
 }
 
 export type QuestionDetail = QuestionDetailMCQ | QuestionDetailSPR
@@ -81,4 +108,11 @@ export type QuestionDetailSPR = {
     externalid: string,
     // applicable answers
     correct_answer: string[]
+}
+export function isQuestionDetail(json: any): json is QuestionDetail {
+    if (!json) return false;
+    if (!json.correct_answer || !json.rationale || !json.keys || !json.stem) {
+        return false;
+    }
+    return true;
 }

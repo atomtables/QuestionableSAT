@@ -3,7 +3,11 @@
     import { onMount } from "svelte";
     import Spinner from "$lib/components/Spinner.svelte";
     import type { LookupData, Question } from "$lib/types/types";
-    import { lookup, questions, selectedDetails } from "$lib/clientstate/states.svelte";
+    import {
+        lookup,
+        questions,
+        selectedDetails,
+    } from "$lib/clientstate/states.svelte";
     import Input from "$lib/components/Input.svelte";
     import { slide } from "svelte/transition";
     import Button from "$lib/components/Button.svelte";
@@ -19,7 +23,6 @@
         };
     } = $props();
 
-    onMount(() => {});
     const lookupData = $derived(
         Object.values(lookup.lookupData.domain)[selectedDetails.section],
     );
@@ -52,9 +55,7 @@
             ) &&
             (!selectedDetails.ignoreLive ||
                 (!lookup.mathLiveItems.includes(question.external_id) &&
-                    !lookup.readingLiveItems.includes(
-                        question.external_id,
-                    )))
+                    !lookup.readingLiveItems.includes(question.external_id)))
         );
     };
     let value = $state(0);
@@ -139,7 +140,7 @@
                 <div
                     class="flex flex-row gap-2 p-5 items-center justify-center"
                 >
-                    <Spinner />
+                    <!-- <Spinner /> -->
                     <div>Loading your questions. This may take a while.</div>
                 </div>
             {:then questions}

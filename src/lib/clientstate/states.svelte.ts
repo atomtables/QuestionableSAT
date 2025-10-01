@@ -16,4 +16,4 @@ export const setQuestions = (val) => {
     questions[0] = val;
 }
 
-export let onlineStatus: [Boolean] = $state([true])
+export let onlineStatus: [Boolean, FileList] = $state([true, null])

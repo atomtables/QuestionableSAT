@@ -1,3 +1,4 @@
+<!-- TODO: this entire page !!! -->
 <script lang="ts">
     import {onMount} from "svelte";
     import {goto} from "$app/navigation";
@@ -72,7 +73,7 @@
         questionID = urlParams.get("start")
 
         if (!questionID) goto("/questiongets")
-        getNextQuestion()
+        // getNextQuestion()
 
         return () => {
             clearInterval(timerHandler)

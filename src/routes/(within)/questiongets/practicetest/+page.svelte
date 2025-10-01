@@ -19,6 +19,7 @@
     import { loadMCQQuestionThroughJSON } from "$lib/helpers/loadjson";
     import Table from "$lib/components/Table.svelte";
     import { questions as QuestionData } from "$lib/clientstate/states.svelte";
+    import { loadQuestion } from "$lib/helpers/loadend";
 
     let {
         data,
@@ -200,39 +201,10 @@
             return;
         }
         let random: Question = getRandomFromArray(bank);
-        let val: QuestionDetail = null;val;
+        let val: QuestionDetail = null;
         while (true) {
-            let res = await fetch(
-                "https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question",
-                { 
-                    credentials: "omit",
-                    headers: {
-                        Accept: "application/json, text/plain, */*",
-                        "Accept-Language": "en-US,en;q=0.5",
-                        "Content-Type": "application/json",
-                    },
-                    referrer: "https://satsuitequestionbank.collegeboard.org/",
-                    body: JSON.stringify({
-                        external_id: random.external_id,
-                    }),
-                    method: "POST",
-                    mode: "cors",
-                },
-            );
-            val = await res.json();
-            if (!res.ok || val.type === undefined) {
-                // maybe we need to load in via json
-                if (random.ibn) {
-                    val = await loadMCQQuestionThroughJSON(random.ibn);
-                    if (val === null) {
-                        bank = bank.filter((v) => v.uId !== random.uId);
-                        if (bank.length === 0) bank;
-                        random = getRandomFromArray(bank);
-                        continue;
-                    }
-                }
-            }
-            if (random === null || val === null) continue;
+            val = await loadQuestion(random);
+            if (val === null) continue;
             return [random, val];
         }
     }
@@ -259,14 +231,16 @@
                     },
                 ]);
                 loadedQuestions.push(questions.at(-1)[0].external_id);
+                currentQuestionIndex = 0
             });
         }
         new Promise<void>((res) => {
             let self = setInterval(() => {
-                if ((questions.length === amtQuestions && currentQuestion) || currentQuestionIndex === -1) {
+                if ((questions.length === amtQuestions && currentQuestion)) {
                     clearInterval(self);
                     res()
                 }
+                console.log(questions.length, amtQuestions, currentQuestion)
             }, 100)
         }).then(() => {
             questions = shuffle(questions)
@@ -324,7 +298,7 @@
 
     let timerInt: number = $state();
     let timer: string = $state();
-    let timerHandler: number = $state();
+    let timerHandler: ReturnType<typeof setTimeout> = $state();
 
     onMount(() => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -345,7 +319,7 @@
             }
         }, 1000);
 
-        if (questions.length < 1) getQuestions();
+        if (questions.length < 1) getQuestions().then(() => null);
 
         return () => {
             clearInterval(timerHandler);
@@ -496,7 +470,7 @@
             </div>
         </div>
     {/if}
-{:else if ((questions.length === amtQuestions && currentQuestion) || currentQuestionIndex === -1) && readyToStart}
+{:else if readyToStart}
     <div transition:slide|global class="z-10000">
         <Bluebook
             bind:timer

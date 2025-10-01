@@ -11,6 +11,7 @@
     import {slide} from "svelte/transition";
     import Spinner from "$lib/components/Spinner.svelte";
     import {loadMCQQuestionThroughJSON} from "$lib/helpers/loadjson";
+    import { loadQuestion } from "$lib/helpers/loadend";
 
     let {
         data
@@ -28,7 +29,7 @@
     let currentStreak = $state(0)
     let timerInt: number = $state()
     let timer: string = $state()
-    let timerHandler: number = $state()
+    let timerHandler: ReturnType<typeof setTimeout> = $state();
 
     let currentScoreTarget: number = $state()
     let currentQuestionNumber: number = $state(0)
@@ -94,32 +95,8 @@
         let val = null;
         while (true) {
             console.log(random)
-            let res = await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
-                credentials: "omit",
-                headers: {
-                    "Accept": "application/json, text/plain, */*",
-                    "Accept-Language": "en-US,en;q=0.5",
-                    "Content-Type": "application/json",
-                },
-                referrer: "https://satsuitequestionbank.collegeboard.org/",
-                body: JSON.stringify({
-                    external_id: random.external_id || random.uId
-                }),
-                method: "POST",
-                mode: "cors"
-            })
-            val = await (res).json()
-            if (!res.ok || val.type === undefined) {
-                // maybe we need to load in via json
-                if (random.ibn) {
-                    val = await loadMCQQuestionThroughJSON(random.ibn)
-                    if (val === null) {
-                        bank = bank.filter(v => v.uId !== random.uId)
-                        random = getRandomFromArray(bank)
-                        continue
-                    }
-                }
-            }
+            val = await loadQuestion(random);
+            if (val === null) continue;
             currentQuestion = val
             break;
         }
