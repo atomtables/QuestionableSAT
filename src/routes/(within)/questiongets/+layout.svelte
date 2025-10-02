@@ -4,6 +4,7 @@
     import { onMount, tick } from "svelte";
     import { alert } from "$lib/components/Dialog.svelte";
     import { isQuestionArray, type Question } from "$lib/types/types";
+    import { page } from "$app/state";
 
     const loadFromOffline = async () => {
         for (const file of onlineStatus[1]) {
@@ -15,12 +16,27 @@
                     reader.readAsText(file);
                 });
                 try {
+                    let val;
                     const json = JSON.parse(text);
-                    const val = json[JSON.stringify({
-                        asmtEventId: parseInt(lookup.lookupData.assessment[parseInt(selectedDetails.test)].id.toString()),
-                        test: parseInt(selectedDetails.section) + 1,
-                        domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(selectedDetails.section)].id - 1].map(v => v.primaryClassCd).join(',')
-                    })];
+                    if (page.url.pathname === '/questiongets/justone') {
+                        try {
+                            let x = JSON.parse(page.url.searchParams.get("jsonparams"))
+                            if (!x.asmtEventId || !x.test) throw new Error();
+                        } catch (error) {
+                            goto("/");
+                        }
+                        val = json[JSON.stringify({
+                            asmtEventId: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['asmtEventId']),
+                            test: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test']),
+                            domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test'])].id - 1].map(v => v.primaryClassCd).join(',')
+                        })]
+                    } else {
+                        val = json[JSON.stringify({
+                            asmtEventId: parseInt(lookup.lookupData.assessment[parseInt(selectedDetails.test)].id.toString()),
+                            test: parseInt(selectedDetails.section) + 1,
+                            domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(selectedDetails.section)].id - 1].map(v => v.primaryClassCd).join(',')
+                        })]
+                    }
                     if (!val) throw new Error();
                     if (!isQuestionArray(val)) { throw new Error(); }
                     return val;
@@ -32,8 +48,10 @@
         }
     }
 
+    let set = $state(false);
+
     onMount(() => {
-        if (!(selectedDetails.test !== undefined && selectedDetails.section !== undefined && selectedDetails.topics !== undefined && selectedDetails.subtopics !== undefined)) {
+        if (page.url.pathname !== '/questiongets/justone' && !(selectedDetails.test !== undefined && selectedDetails.section !== undefined && selectedDetails.topics !== undefined && selectedDetails.subtopics !== undefined)) {
             goto("/topics")
             return;
         }
@@ -42,7 +60,27 @@
                 let promise = loadFromOffline();
                 setQuestions(promise);
             } else {
-                let json = (fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-questions", {
+                let val;
+                if (page.url.pathname === '/questiongets/justone') {
+                    try {
+                        let x = JSON.parse(page.url.searchParams.get("jsonparams"))
+                        if (!x.asmtEventId || !x.test) throw new Error();
+                    } catch (error) {
+                        goto("/");
+                    }
+                    val = JSON.stringify({
+                        asmtEventId: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['asmtEventId']),
+                        test: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test']),
+                        domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test'])-1].id - 1].map(v => v.primaryClassCd).join(',')
+                    })
+                } else {
+                    val = JSON.stringify({
+                        asmtEventId: parseInt(lookup.lookupData.assessment[parseInt(selectedDetails.test)].id.toString()),
+                        test: parseInt(selectedDetails.section) + 1,
+                        domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(selectedDetails.section)].id - 1].map(v => v.primaryClassCd).join(',')
+                    })
+                }
+                let json = fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-questions", {
                     "credentials": "omit",
                     "headers": {
                         "Accept": "*/*",
@@ -50,26 +88,25 @@
                         "Content-Type": "text/plain;charset=UTF-8",
                     },
                     "referrer": "https://satsuitequestionbank.collegeboard.org/",
-                    "body": JSON.stringify({
-                        // @ts-ignore
-                        asmtEventId: parseInt(lookup.lookupData.assessment[parseInt(selectedDetails.test)].id),
-                        // @ts-ignore
-                        test: parseInt(selectedDetails.section) + 1,
-                        // @ts-ignore
-                        domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(selectedDetails.section)].id - 1].map(v => v.primaryClassCd).join(',')
-                    }),
+                    "body": val,
                     "method": "POST",
                     "mode": "cors"
-                })).then((v: Response) => v.json())
-                setQuestions(json)
+                }).then(json => {
+                    if (!json.ok) goto("/");
+                    return json;
+                })
+                setQuestions(json.then((v: Response) => v.json()))
             }
         } catch (e) {
-            console.error(e, Object.values(lookup.lookupData.domain), Object.values(lookup.lookupData.domain)[lookup.lookupData.assessment[parseInt(selectedDetails.section)].id - 1], lookup.lookupData.assessment[parseInt(selectedDetails.section)].id - 1, parseInt(selectedDetails.section))
+            // console.error(e, Object.values(lookup.lookupData.domain), Object.values(lookup.lookupData.domain)[lookup.lookupData.assessment[parseInt(selectedDetails.section)].id - 1], lookup.lookupData.assessment[parseInt(selectedDetails.section)].id - 1, parseInt(selectedDetails.section))
             // await alert(`The Collegeboard servers may not be functional at the moment.`, `${e}.`)
         }
+        set = true
     })
 
     let { children } = $props();
 </script>
 
-{@render children?.()}
+{#if set}
+    {@render children?.()}
+{/if}

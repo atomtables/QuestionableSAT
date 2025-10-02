@@ -1,12 +1,12 @@
 import { onlineStatus } from "$lib/clientstate/states.svelte"
-import { isQuestionDetail, type Question } from "$lib/types/types"
+import { isQuestionDetail, type QuestionDetail } from "$lib/types/types"
 import { loadMCQQuestionThroughJSON } from "./loadjson"
 import { alert } from "$lib/components/Dialog.svelte";
 
-export async function loadQuestion(question: Question) {
+export async function loadQuestion(question: {external_id: string, ibn: string}): Promise<QuestionDetail> {
     if (!onlineStatus[0]) {
         for (const file of onlineStatus[1]) {
-            if (file.name === `${question.external_id}.json`) {
+            if (file.name === `${question.external_id}.json` || file.name === `${question.ibn}.json`) {
                 const text = await new Promise<string>((resolve, reject) => {
                     const reader = new FileReader();
                     reader.onload = (e) => resolve(e.target?.result as string);

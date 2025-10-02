@@ -140,7 +140,7 @@
                 <div
                     class="flex flex-row gap-2 p-5 items-center justify-center"
                 >
-                    <!-- <Spinner /> -->
+                    <Spinner />
                     <div>Loading your questions. This may take a while.</div>
                 </div>
             {:then questions}

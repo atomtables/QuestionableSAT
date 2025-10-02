@@ -5,6 +5,7 @@
     import { isLookupData } from "$lib/types/types";
     import { goto } from "$app/navigation";
     import Button from "$lib/components/Button.svelte";
+    import { page } from "$app/state";
 
     let { children } = $props();
 
@@ -26,7 +27,7 @@
     );
 
     onMount(() => {
-        if (!(selectedDetails.test !== undefined && selectedDetails.section !== undefined && selectedDetails.topics !== undefined && selectedDetails.subtopics !== undefined)) {
+        if (page.url.pathname !== "/questiongets/justone" && !(selectedDetails.test !== undefined && selectedDetails.section !== undefined && selectedDetails.topics !== undefined && selectedDetails.subtopics !== undefined)) {
             goto("/topics")
         }
     })
