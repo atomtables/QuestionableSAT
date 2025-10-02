@@ -266,7 +266,7 @@
     import {fade} from "svelte/transition";
     import {quadInOut} from "svelte/easing";
 
-    let {open, title, description = "", actions = [], children = null, loading = false} = $props();
+    let {open, title, description = "", actions = [], children = null, loading = $bindable(false)} = $props();
     const closeF = () => open = false;
 </script>
 

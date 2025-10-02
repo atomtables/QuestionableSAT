@@ -30,7 +30,10 @@
         }
     })
 
+    let reading = $state(false);
+
     function onchange(event: Event) {
+        reading = true;
         const input = event.currentTarget;
         if (!(input instanceof HTMLInputElement)) return;
 
@@ -52,6 +55,8 @@
                         setLookup(json);
                     } catch (err: any) {
                         alert("Unable to load this archive. Ensure it is not corrupted and that it is valid.")
+                    } finally {
+                        reading = false;
                     }
                 };
                 reader.readAsText(file);
@@ -64,15 +69,17 @@
     {@render children()}
 {:else if !onlineStatus[0] && !onlineStatus[1]}
     <Dialog 
+        bind:loading={reading}
         open={true} 
         title="Offline" 
         description="You are currently offline. To use QuestionableSAT, you need an archive package. You can download this off the internet."
         actions={[{
             name: "Ignore",
+            action: () => null,
             close: true
         }]}>
         <div>
-            <input type="file" webkitdirectory multiple {onchange} />
+            <input type="file" disabled={reading} webkitdirectory class="file:bg-blue-900 file:disabled:opacity-50 file:p-2 file:rounded-xl file:mr-2 cursor-pointer disabled:cursor-not-allowed" {onchange} />
         </div>
     </Dialog>
 {:else}
