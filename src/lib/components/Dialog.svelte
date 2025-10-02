@@ -64,7 +64,7 @@
         return value;
     }
 
-    export const confirm = async (title, description, children, isSnippet, manualclose) => {
+    export const confirm = async (title, description, children = null, isSnippet = false, manualclose = false) => {
         let state;
         const result = new Promise(resolve => state = resolve);
         let close;

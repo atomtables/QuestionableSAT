@@ -37,7 +37,7 @@
 		}
 
 		window.addEventListener('offline', () => {
-			alert("Offline usability", "You have gone offline. QuestionableSAT supports offline usage, but only with a compatible archive and a fresh reload while offline. Your current state will be kept active, but new questions will fail to load and result in unrecoverable errors.")
+			alert("Offline usability", "You have gone offline. QuestionableSAT supports offline usage, but only with a compatible archive and a fresh reload. Your current state will be kept active, but new questions will fail to load and result in unrecoverable errors.")
 		});
 
 		setLookup(lookupRes)
