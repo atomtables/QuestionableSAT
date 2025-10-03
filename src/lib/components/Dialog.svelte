@@ -11,7 +11,7 @@
         }
     }
 
-    export const alert = async (title: string, description: string, children = null, manualclose = false) => {
+    export const alert = async (title: string, description: string, children = null) => {
         let state;
         const result = new Promise(resolve => state = resolve);
         let close;
@@ -29,7 +29,6 @@
                 name: "OK",
                 action: async () => {
                     await state(true);
-                    if (manualclose) await never(manual);
                 },
                 primary: true
             }],
@@ -46,21 +45,11 @@
         props.open = true
 
         let value = [await result];
-        if (manualclose) {
-            manual.then(() => {
-                props.open = false;
-                setTimeout(async () => {
-                    await unmount(dialog);
-                    element.remove();
-                }, 400)
-            })
-        } else {
-            props.open = false;
-            setTimeout(async () => {
-                await unmount(dialog);
-                element.remove();
-            }, 400)
-        }
+        props.open = false;
+        setTimeout(async () => {
+            await unmount(dialog);
+            element.remove();
+        }, 400)
         return value;
     }
 
