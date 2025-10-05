@@ -99,7 +99,7 @@
 <div class="flex flex-col w-screen h-screen items-center justify-center bg-neutral-900/50 backdrop-blur-sm p-10 bg-opacity-50 text-white min-h-screen" in:fade={{ easing: cubicIn, duration: 200 }}>
     <div class="max-w-3xl mx-auto w-full space-y-8">
         <div class="flex flex-col items-center gap-5">
-            <div class="font-bold font-sans">QuestionableSAT</div>
+            <div class="font-bold font-sans"><a href="/" class="hover:underline">QuestionableSAT</a></div>
             <div class="flex justify-between items-center w-full">
                 <div class="flex-1 text-center">
                     <div class="text-xl font-bold" class:opacity-50={currentStep !== 1}>1. Exam</div>

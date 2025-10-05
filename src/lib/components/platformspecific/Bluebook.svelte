@@ -13,6 +13,7 @@
     import { fade } from "svelte/transition";
     import { cubicOut } from "svelte/easing";
     import share from "$lib/assets/share.svg"
+    import seen from "$lib/assets/seen.svg"
     import { page } from "$app/state";
     import { lookup, params } from "$lib/clientstate/states.svelte";
 
@@ -130,6 +131,18 @@
 
     let enableStriking = $state(false);
     let eliminated = $state({});
+
+    // Check if current question has been seen
+    const isQuestionSeen = $derived.by(() => {
+        if (!question?.externalid) return false;
+        
+        try {
+            const seenInSessions = JSON.parse(localStorage.getItem("seen") || "[]");
+            return seenInSessions.includes(question.externalid);
+        } catch {
+            return false;
+        }
+    });
 
     function mathTypeParser(mathML: string) {
         try {
@@ -329,9 +342,12 @@
                         class="flex flex-row font-sans items-center justify-center border-b-2"
                     >
                         <div
-                            class="px-2 h-8 bg-black text-white flex items-center justify-center"
+                            class="px-2 h-8 bg-black text-white flex items-center justify-center gap-2"
                         >
                             {currentQuestionNumberShow}
+                            {#if isQuestionSeen}
+                                <img src={seen} alt="Previously seen" class="w-4 h-4 invert" />
+                            {/if}
                         </div>
                         <div
                             class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1"

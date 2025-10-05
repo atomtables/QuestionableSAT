@@ -200,7 +200,7 @@
             <div class="max-w-3xl mx-auto w-full space-y-8">
                 <div class="flex flex-col items-center gap-5">
                     <div class="font-bold font-sans">
-                        QuestionableSAT
+                        <a href="/" class="hover:underline">QuestionableSAT</a>
                     </div>
                     <div class="flex justify-between items-center w-full">
                         <div class="flex-1 text-center">

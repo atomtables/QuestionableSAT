@@ -6,7 +6,7 @@
 </script>
 
 <div class="w-full lg:p-20 md:p-15 p-5 backdrop-blur-3xl bg-neutral-800/50 text-white flex flex-col gap-5" transition:fade={{ easing: cubicIn, duration: 50 }}>
-    <div class="-mb-5 font-bold font-sans">QuestionableSAT</div>
+    <div class="-mb-5 font-bold font-sans"><a href="/" class="hover:underline">QuestionableSAT</a></div>
     <div class="text-5xl/16 font-bold max-w-4xl">What is QuestionableSAT?</div>
     <div class="text-xl max-w-4xl font-sans">
         QuestionableSAT just makes the questions that are in CollegeBoard's SAT Suite Educator Question Bank and puts them into a format that actual humans can understand.

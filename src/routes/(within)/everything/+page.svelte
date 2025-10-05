@@ -364,7 +364,7 @@
         <div class="w-full max-w-6xl flex flex-col items-center">
             <div class="overflow-hidden rounded-2xl border border-white/10 bg-gray-900/80 shadow-2xl">
                 <div class="border-b border-white/10 px-6 py-6">
-                    <div class="text-sm font-semibold tracking-wide font-sans">QuestionableSAT</div>
+                    <div class="text-sm font-semibold tracking-wide font-sans"><a href="/" class="hover:underline">QuestionableSAT</a></div>
                     <h1 class="mt-1 text-3xl font-bold">All available questions</h1>
                 </div>
                 <div class="divide-white/10 flex flex-row items-center p-5 flex-wrap gap-4 *:w-max">
