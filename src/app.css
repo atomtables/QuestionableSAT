@@ -1,27 +1,28 @@
-@import url('https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap');
-@import 'tailwindcss';
+@import url("https://fonts.googleapis.com/css2?family=Noto+Serif:ital,wght@0,100..900;1,100..900&display=swap");
+@import "tailwindcss";
 
 @layer base {
     body {
-        font-family: 'Noto Serif', serif;
-        @apply from-cyan-600 to-blue-900 bg-gradient-to-br min-h-screen flex flex-col
+        font-family: "Noto Serif", serif;
+        @apply from-cyan-600 to-blue-900 bg-gradient-to-br min-h-screen flex flex-col;
     }
 
     table {
-        @apply my-4
+        @apply my-4;
     }
 
-    th, td {
-        @apply p-2
+    th,
+    td {
+        @apply p-2;
     }
 
     td:not(:first-child) {
-        @apply border-l-2
+        @apply border-l-2;
     }
 
     thead {
         vertical-align: bottom;
-        @apply border-b-2
+        @apply border-b-2;
     }
 
     tbody {
@@ -29,29 +30,29 @@
     }
 
     tbody > tr {
-        @apply border-t-2
+        @apply border-t-2;
     }
 
     caption {
         caption-side: top;
         text-align: left;
-        @apply font-semibold
+        @apply font-semibold;
     }
 
     ul {
-        @apply list-disc list-inside
+        @apply list-disc list-inside;
     }
 
     ol {
-        @apply list-decimal list-inside
+        @apply list-decimal list-inside;
     }
 
     blockquote {
-        @apply pl-2
+        @apply pl-2;
     }
 
     .sr-only {
-        display:none;
+        display: none;
     }
     .math-img {
         background-color: white;

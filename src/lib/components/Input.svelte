@@ -40,7 +40,7 @@
         transform: none;
     }
 </style>
-<div class="relative py-2 input-container w-full {className}">
+<div class="relative py-2 input-container w-max {containerClassName}">
     <label class="transition-all floating-label text-gray-400 {isFocused && 'text-blue-400'} {hasText && 'up'}"
            for={id}>
         {name}
@@ -48,7 +48,7 @@
     {#if type === "dropdown"}
         <select
                 bind:value={value} {type} name={id} {id}
-                class="w-full px-3 pt-5 pb-2 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all {className}"
+                class="w-full px-3 pt-5 pb-2 bg-gray-900 border border-gray-700 rounded text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all {className}"
                 onfocus={() => isFocused = true}
                 onblur={() => isFocused = false}
                 {...prop}
@@ -124,7 +124,7 @@
     {:else}
         <input
                 bind:value={value} {type} name={id} {id}
-                class="w-full px-3 pt-5 pb-2 bg-gray-100 dark:bg-gray-900 border border-gray-300 dark:border-gray-700 rounded text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all {className}"
+                class="w-full px-3 pt-5 pb-2 bg-gray-900 border border-gray-700 rounded text-base focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all {className}"
                 onfocus={() => isFocused = true}
                 onblur={() => (isFocused = false)}
                 oninput={() => action?.()}

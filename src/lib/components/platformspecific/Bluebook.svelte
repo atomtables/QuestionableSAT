@@ -14,7 +14,7 @@
     import { cubicOut } from "svelte/easing";
     import share from "$lib/assets/share.svg"
     import { page } from "$app/state";
-    import { lookup } from "$lib/clientstate/states.svelte";
+    import { lookup, params } from "$lib/clientstate/states.svelte";
 
     let maxTries: number = $state();
     let currentTries: number = $state(0);
@@ -541,25 +541,13 @@
                                     resetStyling
                                     onclick={() => {
                                         if (navigator.canShare && navigator.canShare({
-                                            url: page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + JSON.stringify({
-                                                asmtEventId: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['asmtEventId']),
-                                                test: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test']),
-                                                domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test'])-1].id - 1].map(v => v.primaryClassCd).join(',')
-                                            })
+                                            url: page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + params.params
                                         })) {
                                             navigator.share({
-                                                url: page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + JSON.stringify({
-                                                    asmtEventId: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['asmtEventId']),
-                                                    test: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test']),
-                                                    domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test'])-1].id - 1].map(v => v.primaryClassCd).join(',')
-                                                })
+                                                url: page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + params.params
                                             })
                                         } else {
-                                            navigator.clipboard.writeText(page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + JSON.stringify({
-                                                asmtEventId: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['asmtEventId']),
-                                                test: parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test']),
-                                                domain: Object.values(lookup.lookupData.domain)[lookup.lookupData.test[parseInt(JSON.parse(page.url.searchParams.get("jsonparams"))['test'])-1].id - 1].map(v => v.primaryClassCd).join(',')
-                                            }))
+                                            navigator.clipboard.writeText(page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + params.params)
                                         }
                                     }}
                                 >

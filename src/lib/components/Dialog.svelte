@@ -1,5 +1,5 @@
 <script module lang="ts">
-    import {createRawSnippet, mount, unmount} from "svelte";
+    import {createRawSnippet, mount, onMount, unmount} from "svelte";
     import Dialog from "./Dialog.svelte"
     import Input from "$lib/components/Input.svelte";
 
@@ -247,6 +247,8 @@
         }
         return value;
     }
+
+    let close = $state("");
 </script>
 
 <script lang="ts">
@@ -257,6 +259,18 @@
 
     let {open, title, description = "", actions = [], children = null, loading = $bindable(false)} = $props();
     const closeF = () => open = false;
+
+    let id = crypto.randomUUID();
+
+    onMount(() => {
+        close = id;
+    })
+
+    $effect(() => {
+        if (close !== id) {
+            closeF();
+        }
+    })
 </script>
 
 {#if open}

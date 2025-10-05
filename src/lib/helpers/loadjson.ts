@@ -1,7 +1,7 @@
 // collegeboard loads questions through two different methods
 import { onlineStatus } from "$lib/clientstate/states.svelte";
 import { alert } from "$lib/components/Dialog.svelte";
-import {isQuestionDetail, type QuestionDetailMCQ, type QuestionDetailSPR} from "$lib/types/types";
+import { isQuestionDetail, type QuestionDetailMCQ, type QuestionDetailSPR } from "$lib/types/types";
 
 export async function loadMCQQuestionThroughJSON(ibn: string) {
     try {
@@ -15,9 +15,9 @@ export async function loadMCQQuestionThroughJSON(ibn: string) {
                         reader.readAsText(file);
                     });
                     try {
-                        let item: any = Object.values(JSON.parse(text))[0]
-                        if (item?.answer?.style !== "Multiple Choice") return null // don't really care if it is SPR, thats like less than 1% of problems
-                        let correctId = crypto.randomUUID()
+                        let item: any = Object.values(JSON.parse(text))[0];
+                        if (item?.answer?.style !== "Multiple Choice") return null; // don't really care if it is SPR, thats like less than 1% of problems
+                        let correctId = crypto.randomUUID();
                         let ret: QuestionDetailMCQ = {
                             vaultId: null,
                             keys: [correctId],
@@ -47,19 +47,21 @@ export async function loadMCQQuestionThroughJSON(ibn: string) {
                                 if (letter === item.answer.correct_choice) {
                                     return {
                                         id: correctId,
-                                        content: element.body
-                                    }
+                                        content: element.body,
+                                    };
                                 } else {
                                     return {
                                         id: crypto.randomUUID(),
-                                        content: element.body
-                                    }
+                                        content: element.body,
+                                    };
                                 }
                             }),
                             // correct answer letter but no letters used, use keys
-                            correct_answer: item.answer.correct_choice
+                            correct_answer: item.answer.correct_choice,
+                        };
+                        if (!isQuestionDetail(ret)) {
+                            throw new Error();
                         }
-                        if (!isQuestionDetail(ret)) { throw new Error(); }
                         return ret;
                     } catch (err: any) {
                         return null;
@@ -68,19 +70,19 @@ export async function loadMCQQuestionThroughJSON(ibn: string) {
             }
         } else {
             let res = await fetch(`https://saic.collegeboard.org/disclosed/${ibn}.json`, {
-                "credentials": "omit",
-                "headers": {
-                    "Accept": "application/json, text/plain, */*",
+                credentials: "omit",
+                headers: {
+                    Accept: "application/json, text/plain, */*",
                     "Accept-Language": "en-US,en;q=0.5",
                 },
-                "referrer": "https://satsuitequestionbank.collegeboard.org/",
-                "method": "GET",
-                "mode": "cors"
+                referrer: "https://satsuitequestionbank.collegeboard.org/",
+                method: "GET",
+                mode: "cors",
             });
-            if (!res.ok) return null
-            let item: any = Object.values(await res.json())[0]
-            if (item?.answer?.style !== "Multiple Choice") return null // don't really care if it is SPR, thats like less than 1% of problems
-            let correctId = crypto.randomUUID()
+            if (!res.ok) return null;
+            let item: any = Object.values(await res.json())[0];
+            if (item?.answer?.style !== "Multiple Choice") return null; // don't really care if it is SPR, thats like less than 1% of problems
+            let correctId = crypto.randomUUID();
             let ret: QuestionDetailMCQ = {
                 vaultId: null,
                 keys: [correctId],
@@ -110,18 +112,18 @@ export async function loadMCQQuestionThroughJSON(ibn: string) {
                     if (letter === item.answer.correct_choice) {
                         return {
                             id: correctId,
-                            content: element.body
-                        }
+                            content: element.body,
+                        };
                     } else {
                         return {
                             id: crypto.randomUUID(),
-                            content: element.body
-                        }
+                            content: element.body,
+                        };
                     }
                 }),
                 // correct answer letter but no letters used, use keys
-                correct_answer: item.answer.correct_choice
-            }
+                correct_answer: item.answer.correct_choice,
+            };
             if (!isQuestionDetail(ret)) return null;
             return ret;
         }

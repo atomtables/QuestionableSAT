@@ -140,6 +140,7 @@
                         <span class="text-lg">{text}</span>
                     </div>
                 {/each}
+                <a href="/everything" class="text-gray-300 hover:underline text-sm">Just show me everything.</a>
             </div>
         {/if}
 
@@ -161,6 +162,7 @@
                         <span class="text-lg">{text}</span>
                     </div>
                 {/each}
+                <a href="/everything" class="text-gray-300 hover:underline text-sm">Just show me everything.</a>
             </div>
         {/if}
 
@@ -225,7 +227,7 @@
                 {:else}
                     <div class="text-gray-400 mt-4 italic">Please choose a section first.</div>
                 {/if}
-
+                <a href="/everything" class="text-gray-300 hover:underline text-sm">Just show me everything.</a>
             </div>
         {/if}
 
@@ -262,7 +264,7 @@
                 <div class="mt-2">
                     <p><span class="font-semibold">Ignore questions that are in Bluebook® tests:</span> {setup.ignoreLive ? 'Yes' : 'No'}</p>
                 </div>
-
+                <a href="/everything" class="text-gray-300 hover:underline text-sm">Just show me everything.</a>
             </div>
         {/if}
 

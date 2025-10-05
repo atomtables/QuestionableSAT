@@ -27,7 +27,7 @@
     );
 
     onMount(() => {
-        if (page.url.pathname !== "/questiongets/justone" && !(selectedDetails.test !== undefined && selectedDetails.section !== undefined && selectedDetails.topics !== undefined && selectedDetails.subtopics !== undefined)) {
+        if (!(page.url.pathname === '/everything' || page.url.pathname === "/questiongets/justone") && !(selectedDetails.test !== undefined && selectedDetails.section !== undefined && selectedDetails.topics !== undefined && selectedDetails.subtopics !== undefined)) {
             goto("/topics")
         }
     })

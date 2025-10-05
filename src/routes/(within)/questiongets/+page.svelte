@@ -210,15 +210,16 @@
                     </div>
                 </div>
                 {#if value === -1}
-                    <div class="flex flex-col" transition:slide>
+                    <div class="flex w-full flex-col" transition:slide>
                         <div
-                            class="flex flex-row justify-center items-center -my-1"
+                            class="flex flex-row justify-center w-full items-center -my-1"
                         >
                             <Input
                                 bind:value={startDiff}
                                 name="Starting Difficulty"
                                 type="dropdown"
                                 elements={["Easy", "Medium", "Hard"]}
+                                className="!w-full"
                             />
                         </div>
                         <div class="flex flex-col justify-center -my-1">
@@ -226,6 +227,7 @@
                                 bind:value={answerNumber}
                                 name="Maximum streak before finishing session"
                                 type="text"
+                                className="!w-full"
                             />
                             {#if !lookAt}
                                 <div class="text-red-500 pl-1 -mt-2">
@@ -241,6 +243,7 @@
                                 name="Maximum tries to answer a question before showing the answer"
                                 type="dropdown"
                                 elements={["None", 1, 2, 3]}
+                                className="!w-full"
                             />
                         </div>
                         <div
@@ -264,6 +267,7 @@
                                 bind:value={maxQuestions}
                                 name="Amount of questions"
                                 type="text"
+                                className="!w-full"
                             />
                             {#if !lookAtQ}
                                 <div class="text-red-500 pl-1 -mt-2">
@@ -276,6 +280,7 @@
                                 bind:value={time}
                                 name="Minutes the test should take"
                                 type="text"
+                                className="!w-full"
                             />
                             {#if !lookAtT}
                                 <div class="text-red-500 pl-1 -mt-2">
@@ -291,6 +296,7 @@
                                 name="Difficulty Skew"
                                 type="dropdown"
                                 elements={["Easy", "Medium", "Hard"]}
+                                className="!w-full"
                                 title="Choose whether the bell curve of difficulty should be skewed. Medium is the best option here."
                             />
                         </div>
@@ -315,6 +321,7 @@
                                 bind:value={answerNumber}
                                 name="Maximum streak before finishing session"
                                 type="text"
+                                className="!w-full"
                             />
                             {#if !lookAt}
                                 <div class="text-red-500 pl-1 -mt-2">
@@ -330,6 +337,7 @@
                                 name="Maximum tries to answer a question before showing the answer"
                                 type="dropdown"
                                 elements={["None", 1, 2, 3]}
+                                className="!w-full"
                             />
                         </div>
                         <div
