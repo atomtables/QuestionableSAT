@@ -564,31 +564,31 @@
                                                         </div>
                                                         <div class="text-left">
                                                             <h3 class="text-lg font-semibold text-white group-hover:text-orange-300 transition-colors">
-                                                                    {skillText}
-                                                                </h3>
-                                                                <p class="text-sm text-gray-400">
-                                                                    {skillQuestions.length} question{skillQuestions.length === 1 ? "" : "s"} available
-                                                                </p>
-                                                            </div>
+                                                                {skillText}
+                                                            </h3>
+                                                            <p class="text-sm text-gray-400">
+                                                                {skillQuestions.length} question{skillQuestions.length === 1 ? "" : "s"} available
+                                                            </p>
                                                         </div>
+                                                    </div>
 
-                                                        <!-- Expand/collapse icon -->
-                                                        <div class="flex items-center gap-3">
-                                                            <span class="text-xs text-gray-500 px-2 py-1 bg-gray-800 rounded-full">
-                                                                {skillQuestions.filter((q) => {
-                                                                    const isInBluebook = lookup.mathLiveItems.includes(q.external_id || "");
-                                                                    return isInBluebook;
-                                                                }).length} in Bluebook
-                                                            </span>
-                                                            <svg class="w-5 h-5 text-gray-400 transition-transform duration-200 {collapsedSkills.has(skillText) ? 'rotate-0' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
-                                                            </svg>
-                                                        </div>
-                                                    </button>
+                                                    <!-- Expand/collapse icon -->
+                                                    <div class="flex items-center gap-3">
+                                                        <span class="text-xs text-gray-500 px-2 py-1 bg-gray-800 rounded-full">
+                                                            {skillQuestions.filter((q) => {
+                                                                const isInBluebook = lookup.mathLiveItems.includes(q.external_id || "");
+                                                                return isInBluebook;
+                                                            }).length} in Bluebook
+                                                        </span>
+                                                        <svg class="w-5 h-5 text-gray-400 transition-transform duration-200 {collapsedSkills.has(skillText) ? 'rotate-0' : 'rotate-180'}" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path>
+                                                        </svg>
+                                                    </div>
+                                                </button>
 
-                                                    <!-- Collapsible content -->
-                                                    {#if collapsedSkills.has(skillText)}
-                                                        {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc, question) => {
+                                                <!-- Collapsible content -->
+                                                {#if collapsedSkills.has(skillText)}
+                                                    {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc, question) => {
                                                         const skillCode = question.skill_cd;
                                                         if (!acc[skillCode]) {
                                                             acc[skillCode] = [];
@@ -596,38 +596,38 @@
                                                         acc[skillCode].push(question);
                                                         return acc;
                                                     }, {})}
-                                                        <div class="border-t border-gray-700/30" transition:slide>
-                                                            <div class="flex flex-col gap-4 px-6 py-2 text-sm text-gray-300 md:flex-row md:items-center md:justify-between">
-                                                                <button onclick={() => enterQuestionViewer(`All ${skillText} Questions`, skillQuestions)} class="text-indigo-300 transition hover:text-indigo-200 hover:underline cursor-pointer">Practice all {skillQuestions.length} questions in this topic.</button>
-                                                            </div>
-                                                            {#each Object.entries(questionsBySkillCode) as [skillCode, skillCodeQuestions]}
-                                                                <div class="border border-gray-700/40 bg-gray-800/30 overflow-hidden">
-                                                                    <!-- Skill code header -->
-                                                                    <button onclick={() => enterQuestionViewer(`${skillText} - ${skillCode}`, skillCodeQuestions)} class="w-full px-4 py-3 bg-gray-800/30 border-b border-gray-700/40 hover:bg-gray-700/50 transition-colors group cursor-pointer">
-                                                                        <div class="flex items-center justify-between">
-                                                                            <div class="flex items-center gap-3">
-                                                                                <span class="px-2 py-1 text-xs font-bold bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-full group-hover:from-orange-500 group-hover:to-red-500 transition-colors">
-                                                                                    {skillCode}
-                                                                                </span>
-                                                                                <span class="text-sm font-medium text-white group-hover:text-orange-300 transition-colors">
-                                                                                    {skillCodeQuestions[0]?.skill_desc || "Unknown Skill"}
-                                                                                </span>
-                                                                            </div>
-                                                                            <div class="flex items-center gap-2">
-                                                                                <span class="text-xs text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity"> Click to practice → </span>
-                                                                                <span class="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">
-                                                                                    {skillCodeQuestions.length} question{skillCodeQuestions.length === 1 ? "" : "s"}
-                                                                                </span>
-                                                                            </div>
-                                                                        </div>
-                                                                    </button>
-                                                                </div>
-                                                            {/each}
+                                                    <div class="border-t border-gray-700/30" transition:slide>
+                                                        <div class="flex flex-col gap-4 px-6 py-2 text-sm text-gray-300 md:flex-row md:items-center md:justify-between">
+                                                            <button onclick={() => enterQuestionViewer(`All ${skillText} Questions`, skillQuestions)} class="text-indigo-300 transition hover:text-indigo-200 hover:underline cursor-pointer">Practice all {skillQuestions.length} questions in this topic.</button>
                                                         </div>
-                                                    {/if}
-                                                </div>
-                                            {/if}
-                                        {/each}
+                                                        {#each Object.entries(questionsBySkillCode) as [skillCode, skillCodeQuestions]}
+                                                            <div class="border border-gray-700/40 bg-gray-800/30 overflow-hidden">
+                                                                <!-- Skill code header -->
+                                                                <button onclick={() => enterQuestionViewer(`${skillText} - ${skillCode}`, skillCodeQuestions)} class="w-full px-4 py-3 bg-gray-800/30 border-b border-gray-700/40 hover:bg-gray-700/50 transition-colors group cursor-pointer">
+                                                                    <div class="flex items-center justify-between">
+                                                                        <div class="flex items-center gap-3">
+                                                                            <span class="px-2 py-1 text-xs font-bold bg-gradient-to-r from-orange-600 to-red-600 text-white rounded-full group-hover:from-orange-500 group-hover:to-red-500 transition-colors">
+                                                                                {skillCode}
+                                                                            </span>
+                                                                            <span class="text-sm font-medium text-white group-hover:text-orange-300 transition-colors">
+                                                                                {skillCodeQuestions[0]?.skill_desc || "Unknown Skill"}
+                                                                            </span>
+                                                                        </div>
+                                                                        <div class="flex items-center gap-2">
+                                                                            <span class="text-xs text-orange-400 opacity-0 group-hover:opacity-100 transition-opacity"> Click to practice → </span>
+                                                                            <span class="text-xs text-gray-400 bg-gray-700 px-2 py-1 rounded-full">
+                                                                                {skillCodeQuestions.length} question{skillCodeQuestions.length === 1 ? "" : "s"}
+                                                                            </span>
+                                                                        </div>
+                                                                    </div>
+                                                                </button>
+                                                            </div>
+                                                        {/each}
+                                                    </div>
+                                                {/if}
+                                            </div>
+                                        {/if}
+                                    {/each}
                                 </div>
                             {/if}
                         {:else}
