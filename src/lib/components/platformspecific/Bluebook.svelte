@@ -14,6 +14,7 @@
     import { cubicOut } from "svelte/easing";
     import share from "$lib/assets/share.svg"
     import seen from "$lib/assets/seen.svg"
+    import coin from "$lib/assets/coin.svg"
     import { page } from "$app/state";
     import { lookup, params } from "$lib/clientstate/states.svelte";
 
@@ -144,6 +145,39 @@
         }
     });
 
+    // Coin management functions
+    function getCoins(): number {
+        try {
+            return parseInt(localStorage.getItem("coins") || "0");
+        } catch {
+            return 0;
+        }
+    }
+
+    function addCoins(amount: number): void {
+        const currentCoins = getCoins();
+        localStorage.setItem("coins", (currentCoins + amount).toString());
+    }
+
+    function removeCoins(amount: number): void {
+        const currentCoins = getCoins();
+        const newAmount = Math.max(0, currentCoins - amount); // Don't go below 0
+        localStorage.setItem("coins", newAmount.toString());
+    }
+
+    // Get current coin count reactively
+    let coinCount = $state(getCoins());
+    
+    // Update coin count when localStorage changes
+    $effect(() => {
+        const updateCoins = () => {
+            coinCount = getCoins();
+        };
+        
+        window.addEventListener('storage', updateCoins);
+        return () => window.removeEventListener('storage', updateCoins);
+    });
+
     function mathTypeParser(mathML: string) {
         try {
             const parser = new DOMParser();
@@ -210,6 +244,10 @@
                 }
                 maxTries = max;
                 if (correct) {
+                    // Award coins for correct answer
+                    addCoins(5);
+                    coinCount = getCoins(); // Update reactive coin count
+                    
                     if (question.type === "mcq") {
                         isCorrect = question.answerOptions[selectedOption].id;
                     } else {
@@ -221,6 +259,10 @@
                     shown = true;
                 } else {
                     if (currentTries >= maxTries) {
+                        // Deduct coins for wrong answer (only when showing final result)
+                        removeCoins(5);
+                        coinCount = getCoins(); // Update reactive coin count
+                        
                         if (question.type === "mcq") {
                             isWrong = question.answerOptions[selectedOption].id;
                             isCorrect = question.keys[0];
@@ -579,6 +621,12 @@
                                         >
                                     </div>
                                 </Button>
+                            </div>
+                            <div class="p-2 bg-blue-100 rounded-2xl mb-2 flex items-center justify-between">
+                                <div class="flex items-center gap-2 text-sm font-bold">
+                                    <img src={coin} alt="coins" class="w-5 h-5" />
+                                    <span>Current Balance: {coinCount} coins</span>
+                                </div>
                             </div>
                             <!--                        <div class="p-2 bg-yellow-400 rounded-2xl">-->
                             <!--                            Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no-->

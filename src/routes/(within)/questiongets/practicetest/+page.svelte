@@ -1,5 +1,6 @@
 <script lang="ts">
     import bookmarked from "$lib/assets/bookmarked.svg";
+    import coin from "$lib/assets/coin.svg";
     import { onMount } from "svelte";
     import { goto } from "$app/navigation";
     import Bluebook from "$lib/components/platformspecific/Bluebook.svelte";
@@ -43,6 +44,39 @@
     let currentQuestion: [Question, QuestionDetail, { selected: string; review: boolean }] = $derived(currentQuestionIndex !== -1 ? (currentQuestionIndex < questions.length ? questions[currentQuestionIndex] : null) : [null, null, { selected: null, review: false }]);
     let timetogo = $state(false);
     let fake = $derived(null);
+
+    // Coin management functions
+    function getCoins(): number {
+        try {
+            return parseInt(localStorage.getItem("coins") || "0");
+        } catch {
+            return 0;
+        }
+    }
+
+    function addCoins(amount: number): void {
+        const currentCoins = getCoins();
+        localStorage.setItem("coins", (currentCoins + amount).toString());
+    }
+
+    function removeCoins(amount: number): void {
+        const currentCoins = getCoins();
+        const newAmount = Math.max(0, currentCoins - amount); // Don't go below 0
+        localStorage.setItem("coins", newAmount.toString());
+    }
+
+    // Get current coin count reactively
+    let coinCount = $state(getCoins());
+    
+    // Update coin count when localStorage changes
+    $effect(() => {
+        const updateCoins = () => {
+            coinCount = getCoins();
+        };
+        
+        window.addEventListener('storage', updateCoins);
+        return () => window.removeEventListener('storage', updateCoins);
+    });
 
     function getRandomFromArray<T>(arr: Array<T>) {
         if (arr.length === 0) {
@@ -223,16 +257,26 @@
     async function submitHandler() {
         for (let [dat, question, { selected, review }] of questions) {
             console.log(dat, question, selected, review);
+            const isCorrect = question.type === "mcq" ? question.keys.includes(question.answerOptions[selected]?.id || null) : question.keys.includes(selected);
+            
+            // Award or deduct coins based on answer
+            if (isCorrect) {
+                addCoins(5);
+            } else {
+                removeCoins(5);
+            }
+            
             currentQuestionHistory.push([
                 question,
                 dat,
                 {
-                    correct: question.type === "mcq" ? question.keys.includes(question.answerOptions[selected]?.id || null) : question.keys.includes(selected),
+                    correct: isCorrect,
                     selected: question.type === "mcq" ? question.answerOptions[selected]?.id : selected,
                     reviewed: review,
                 },
             ]);
         }
+        coinCount = getCoins(); // Update reactive coin count
         timetogo = true;
         clearInterval(timerHandler);
     }
@@ -324,6 +368,10 @@
                         You answered <b>{currentQuestionHistory.length} questions</b>
                         and got
                         <b>{currentQuestionHistory.filter((v) => v[2].correct).length} correct</b>
+                    </div>
+                    <div class="flex items-center gap-2 text-gray-300">
+                        <img src={coin} alt="coins" class="w-5 h-5" />
+                        <span>Current Balance: <b>{coinCount} coins</b></span>
                     </div>
                     <div class="max-h-96 overflow-y-scroll w-full">
                         <table class="pt-4 w-full">
