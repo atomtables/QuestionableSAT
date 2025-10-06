@@ -1,4 +1,4 @@
-<script>
+<script lang="ts">
     import "../app.css";
     import favicon from "$lib/assets/favicon.svg";
     import Button from "$lib/components/Button.svelte";
@@ -6,6 +6,7 @@
     import { onMount } from "svelte";
     import { lookup, onlineStatus, setLookup } from "$lib/clientstate/states.svelte";
     import { alert } from "$lib/components/Dialog.svelte";
+    import { isLookupData } from "$lib/types/types";
 
     let { children, data } = $props();
 
@@ -20,8 +21,33 @@
         });
     });
 
+    let mounted = $state(false)
+
+    $effect(() => {
+        if (onlineStatus[0] && mounted) {
+            fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/lookup", {
+                credentials: "omit",
+                headers: {
+                    Accept: "application/json, text/plain, */*",
+                    "Accept-Language": "en-US,en;q=0.5",
+                },
+                cache: "no-store",
+                method: "GET",
+            }).then(res => res.json()).then(data => {
+                if (!isLookupData(data)) {
+                    throw new Error()
+                } else {
+                    setLookup(data);
+                }
+            }).catch(() => {
+                onlineStatus[0] = false;
+                alert("Offline mode", "The network request to CB failed, so you have been placed in offline mode.")
+            });
+        }
+    })
+
     onMount(async () => {
-        let lookupRes;
+        let lookupRes = {};
         try {
             lookupRes = await (
                 await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/lookup", {
@@ -43,6 +69,8 @@
         });
 
         setLookup(lookupRes);
+
+        mounted = true;
     });
 </script>
 

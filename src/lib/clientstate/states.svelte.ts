@@ -5,6 +5,9 @@ export let selectedDetails: any = $state({});
 // @ts-ignore
 export let lookup: LookupData = $state({});
 export const setLookup = (val) => {
+    for (const [k,v] of Object.entries(lookup)) {
+        lookup[k] = undefined;
+    }
     for (const [key, value] of Object.entries(val)) {
         lookup[key] = value;
     }

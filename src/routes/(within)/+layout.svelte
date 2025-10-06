@@ -109,7 +109,7 @@
         bind:loading={reading}
         open={true}
         title="Offline"
-        description="You are currently offline. To use QuestionableSAT, you need an archive package. You can download this off the internet."
+        description="You are currently offline. To use QuestionableSAT, you need an archive package. You can make this yourself when you have internet."
         actions={[
             {
                 name: "Ignore",
