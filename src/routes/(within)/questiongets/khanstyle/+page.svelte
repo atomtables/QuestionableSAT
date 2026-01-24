@@ -1,8 +1,8 @@
 <script lang="ts">
-    import { onMount } from "svelte";
+    import { onDestroy, onMount } from "svelte";
     import { goto } from "$app/navigation";
     import Bluebook from "$lib/components/platformspecific/Bluebook.svelte";
-    import Dialog from "$lib/components/Dialog.svelte";
+    import Dialog, { confirm } from "$lib/components/Dialog.svelte";
     import type { LookupData, Question, QuestionDetail, QuestionDetailMCQ } from "$lib/types/types";
     import { alert } from "$lib/components/Dialog.svelte";
     import { lookup, questions, selectedDetails } from "$lib/clientstate/states.svelte";
@@ -39,6 +39,8 @@
     let selectedOption: number = $state();
     let scoreTargetIncrease: number = $state();
     let decreased: boolean = $state(false);
+
+    let unpromisedQuestions: Question[] = $state();
 
     let timetogo: boolean = $state(false);
 
@@ -81,24 +83,31 @@
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.");
             localStorage.setItem("seen", JSON.stringify([]));
         }
-        let bank: Question[] = (await questions[0])
-            .filter((v) => appliedFilters(v)) // fits the filters the user has applied
-            .filter((v) => v.score_band_range_cd < currentScoreTarget + 1 && v.score_band_range_cd > currentScoreTarget - 1) // within score range
-            .filter((v) => !currentQuestionHistory.some((x) => x[0].externalid === v.external_id) || !currentQuestionHistory.some((x) => x[0].externalid === v.ibn)); // ignore seen questions
-        console.log(bank);
-        if (ignoreViewed) {
-            bank = bank.filter((v) => !seenInSessions.includes(v.external_id));
-        }
+        const minScore = currentScoreTarget - 1;
+        const maxScore = currentScoreTarget + 1;
+        const historyIds = new Set(currentQuestionHistory.flatMap((x) => [x[0].externalid]));
+        const seenSessionIds = ignoreViewed ? new Set(seenInSessions) : null;
+        const bank: Question[] = unpromisedQuestions.filter((v) => {
+            if (v.score_band_range_cd <= minScore || v.score_band_range_cd >= maxScore) return false;
+            if ((historyIds.has(v.external_id) || historyIds.has(v.ibn))) return false;
+            if (seenSessionIds && seenSessionIds.has(v.external_id)) return false;
+            return true;
+        });
+
         if (bank.length < 1) {
             await alert("Out of questions", "You have reached the end of your selected questions.");
             return;
         }
         let random = getRandomFromArray(bank);
-        let val = null;
+        let val = await loadQuestion(random);
         while (true) {
-            console.log(random);
+            // console.log(random);
             val = await loadQuestion(random);
-            if (val === null) continue;
+            if (val === null) {
+                let result = await confirm("Error", "The CollegeBoard server was unable to get the next question. Would you like to get another question? (No will keep you on the current question.)");
+                if (!result) return;
+                continue;
+            }
             currentQuestion = val;
             break;
         }
@@ -124,7 +133,7 @@
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.");
             localStorage.setItem("seen", JSON.stringify([]));
         }
-        console.log(currentQuestion.keys, selectedOption);
+        // console.log(currentQuestion.keys, selectedOption);
         clearInterval(timerHandler);
         currentQuestionHistory.push([
             currentQuestion,
@@ -158,12 +167,14 @@
         clearTimeout(timerHandler);
     }
 
-    onMount(() => {
+    onMount(async () => {
         const urlParams = new URLSearchParams(window.location.search);
         start = urlParams.get("start");
         tries = parseInt(urlParams.get("tries"));
         ignoreViewed = urlParams.get("ignoreViewed") || true;
         maxStreak = isNaN(parseInt(urlParams.get("streak"))) ? 0 : parseInt(urlParams.get("streak"));
+
+        unpromisedQuestions = (await questions[0]).filter((v) => appliedFilters(v));
 
         if (!start || isNaN(tries)) goto("/questiongets");
 
@@ -176,10 +187,9 @@
         }
 
         getNextQuestion();
-
-        return () => {
-            clearInterval(timerHandler);
-        };
+    });
+    onDestroy(() => {
+        clearInterval(timerHandler);
     });
 
     let currentlyReviewing = $state(null);

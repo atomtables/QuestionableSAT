@@ -67,9 +67,9 @@
         questionShouldBeReviewed: boolean;
     } = $props();
 
-    $effect(() => {
-        console.log($state.snapshot(question?.correct_answer));
-    });
+    // $effect(() => {
+    //     console.log($state.snapshot(question?.correct_answer));
+    // });
 
     $effect(() => {
         if (question) {
@@ -124,6 +124,9 @@
             }
         }
     }
+
+    let copied = $state(false);
+    let copied2 = $state(false);
 
     let enableStriking = $state(false);
     let eliminated = $state({});
@@ -359,7 +362,7 @@
                     {#if shown}
                         <div class="flex flex-col p-2 bg-blue-50 rounded-2xl my-4">
                             <div class="p-2 bg-blue-100 rounded-2xl mb-2">
-                                The answer{question.correct_answer.length > 1 ? "s" : ""} was {question.correct_answer}.
+                                The answer{question.correct_answer.length > 1 ? "s were" : " was"}  {typeof question.correct_answer === "string" ? question.correct_answer : question.correct_answer.join(", ")}.
                                 {#if history}
                                     <span class={!question.keys.includes(history.selected) ? "text-red-500" : "text-green-700"}>
                                         {#if !history.selected}
@@ -393,11 +396,15 @@
                                                       })
                                                     : ""),
                                         );
+                                        copied = true;
+                                        setTimeout(() => {
+                                            copied = false;
+                                        }, 1000);
                                     }}
                                 >
                                     <div class="w-full flex flex-row gap-2 text-black">
-                                        <img src={copy} alt="Copy the question" />
-                                        <span>Copy raw question to clipboard</span>
+                                        <img src={copy} class="w-6 aspect-square" alt="Copy the question" />
+                                        <span>{copied ? 'Copied!' : 'Copy raw question to clipboard'}</span>
                                     </div>
                                 </Button>
                                 <Button
@@ -415,12 +422,16 @@
                                             });
                                         } else {
                                             navigator.clipboard.writeText(page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params);
+                                            copied2 = true;
+                                            setTimeout(() => {
+                                                copied2 = false;
+                                            }, 1000);
                                         }
                                     }}
                                 >
                                     <div class="w-full flex flex-row gap-2 text-black">
-                                        <img src={share} alt="Share the question" />
-                                        <span>Share question link</span>
+                                        <img src={share} class="w-6 aspect-square" alt="Share the question" />
+                                        <span>{copied2 ? 'Copied!' : 'Share question link'}</span>
                                     </div>
                                 </Button>
                             </div>
