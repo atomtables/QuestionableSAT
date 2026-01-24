@@ -26,29 +26,34 @@ export async function loadQuestion(question: { external_id: string; ibn: string 
             }
         }
     } else {
-        let res = await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
-            credentials: "omit",
-            headers: {
-                Accept: "application/json, text/plain, */*",
-                "Accept-Language": "en-US,en;q=0.5",
-                "Content-Type": "application/json",
-            },
-            referrer: "https://satsuitequestionbank.collegeboard.org/",
-            body: JSON.stringify({
-                external_id: question.external_id,
-            }),
-            method: "POST",
-            mode: "cors",
-        });
-        let val = await res.json();
-        if (!res.ok || val.type === undefined) {
-            // maybe we need to load in via json
-            if (question.ibn) {
-                val = await loadMCQQuestionThroughJSON(question.ibn);
+        if (question.external_id) {
+            let res = await fetch("https://qbank-api.collegeboard.org/msreportingquestionbank-prod/questionbank/digital/get-question", {
+                credentials: "omit",
+                headers: {
+                    Accept: "application/json, text/plain, */*",
+                    "Accept-Language": "en-US,en;q=0.5",
+                    "Content-Type": "application/json",
+                },
+                referrer: "https://satsuitequestionbank.collegeboard.org/",
+                body: JSON.stringify({
+                    external_id: question.external_id,
+                }),
+                method: "POST",
+                mode: "cors",
+            });
+            let val = await res.json();
+            if (!res.ok || val.type === undefined) {
+                // maybe we need to load in via json
+                if (question.ibn) {
+                    val = await loadMCQQuestionThroughJSON(question.ibn);
+                    return val;
+                } else return null;
+            } else {
                 return val;
-            } else return null;
-        } else {
+            }
+        } else if (question.ibn) {
+            let val = await loadMCQQuestionThroughJSON(question.ibn);
             return val;
-        }
+        } else return null 
     }
 }
