@@ -83,9 +83,9 @@
         }
         try {
             let qs = await questions[0];
-            console.log(qs);
+            // console.log(qs);
             currentQuestionOutside = qs.find((q) => q.external_id === questionID);
-            console.log(currentQuestionOutside, questionID);
+            // console.log(currentQuestionOutside, questionID);
             if (!currentQuestionOutside)
                 goto("/topics").then(() => {
                     alert("Error", "This question link is invalid. Please request the person who sent you the link to send you a valid link.");
@@ -97,7 +97,7 @@
                 });
             }
         } catch (e) {
-            console.log(e);
+            // console.log(e);
         }
     });
     onDestroy(() => {

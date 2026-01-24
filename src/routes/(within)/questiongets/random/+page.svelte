@@ -78,7 +78,7 @@
         let bank: Question[] = (await questions[0])
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
             .filter(v => !currentQuestionHistory.some(x => x[0].externalid === v.external_id) || !currentQuestionHistory.some(x => x[0].externalid === v.ibn)) // ignore seen questions
-        console.log(bank)
+        // console.log(bank)
         if (ignoreViewed) {
             bank = bank.filter(v => !seenInSessions.includes(v.external_id))
         }
@@ -115,7 +115,7 @@
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
             localStorage.setItem("seen", JSON.stringify([]))
         }
-        console.log(currentQuestion.keys, selectedOption)
+        // console.log(currentQuestion.keys, selectedOption)
         clearInterval(timerHandler)
         currentQuestionHistory.push([currentQuestion, currentQuestionOutside, {
             correct: currentQuestion.type === 'mcq' ?

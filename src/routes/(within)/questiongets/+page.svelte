@@ -63,7 +63,7 @@
     const continu = async () => {
         if (value === -1) await goto(`/questiongets/khanstyle?start=${["e", "m", "h"][startDiff]}&tries=${maxTries}&ignoreViewed=${hideQuestions}&streak=${answerNumber}`);
         else if (value === 1) {
-            console.log(time, parseInt(time), parseInt(time) * 60);
+            // console.log(time, parseInt(time), parseInt(time) * 60);
             await goto(`/questiongets/practicetest?questions=${parseInt(maxQuestions)}&time=${parseInt(time) * 60}&ignoreViewed=${hideQuestions}&diff=${["E", "M", "H"][startDiff]}`);
         } else if (value === 3) {
             await goto(`/questiongets/random?tries=${maxTries}&ignoreViewed=${hideQuestions}&streak=${answerNumber}`);

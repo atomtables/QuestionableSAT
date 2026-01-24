@@ -261,7 +261,7 @@
     };
 
     $effect(() => {
-        console.log(lookup.lookupData.test, setup.test);
+        // console.log(lookup.lookupData.test, setup.test);
         if (setup.test !== null && setup.section === 2) {
             // Load both Reading & Writing and Math sections (section 2 = "All Sections")
             try {

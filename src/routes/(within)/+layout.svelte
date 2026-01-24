@@ -44,13 +44,13 @@
         if (!files) return;
 
         for (const file of files) {
-            console.log("Found file:", file.webkitRelativePath);
+            // console.log("Found file:", file.webkitRelativePath);
             if (file.name.endsWith(".json") && file.name === "lookup.json") {
                 const reader = new FileReader();
                 reader.onload = (e) => {
                     try {
                         const json = JSON.parse(e.target?.result as string);
-                        console.log(json, isLookupData(json));
+                        // console.log(json, isLookupData(json));
                         if (!isLookupData(json)) {
                             throw new Error();
                         }

@@ -189,7 +189,7 @@
                     clearInterval(self);
                     res();
                 }
-                console.log(questions.length, amtQuestions, currentQuestion);
+                // console.log(questions.length, amtQuestions, currentQuestion);
             }, 100);
         }).then(() => {
             questions = shuffle(questions);
@@ -222,7 +222,7 @@
     ][] = $state([]);
     async function submitHandler() {
         for (let [dat, question, { selected, review }] of questions) {
-            console.log(dat, question, selected, review);
+            // console.log(dat, question, selected, review);
             const isCorrect = question.type === "mcq" ? question.keys.includes(question.answerOptions[selected]?.id || null) : question.keys.includes(selected);
             
             currentQuestionHistory.push([

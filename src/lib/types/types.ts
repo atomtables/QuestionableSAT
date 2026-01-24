@@ -19,14 +19,14 @@ export function isLookupData(json: any) {
     if (!json.lookupData || !json.mathLiveItems || !json.readingLiveItems) return false;
     const l = json.lookupData;
     if (!l.assessment || !l.test || !l.domain) {
-        console.log(" no lookup data");
+        // console.log(" no lookup data");
         return false;
     }
     for (let key in l.domain) {
         let kl = l.domain[key];
         for (let k of kl) {
             if (!k.text || k.id === null || !k.primaryClassCd || !k.skill) {
-                console.log("keys are wrong", key, l.domain[key], k.text, k.id, k.primaryClassCd, k.skill);
+                // console.log("keys are wrong", key, l.domain[key], k.text, k.id, k.primaryClassCd, k.skill);
                 return false;
             }
         }

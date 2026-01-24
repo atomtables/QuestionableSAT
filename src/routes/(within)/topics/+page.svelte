@@ -25,15 +25,15 @@
 
     onMount(() => {
         // reset on mount if needed
-        console.log("mounted");
+        // console.log("mounted");
         const urlParams = new URLSearchParams(window.location.search);
         let left = urlParams.get("left");
         if (left) {
-            console.log(left);
+            // console.log(left);
             for (let [k, v] of Object.entries(selectedDetails)) {
                 setup[k] = v;
             }
-            console.log($state.snapshot(setup));
+            // console.log($state.snapshot(setup));
 
             tick().then(() => {
                 for (let i = 0; i <= parseInt(left); i++) {
