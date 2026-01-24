@@ -12,9 +12,9 @@
     import dropup from "$lib/assets/dropup.svg";
     import { fade } from "svelte/transition";
     import { cubicOut } from "svelte/easing";
-    import share from "$lib/assets/share.svg"
-    import seen from "$lib/assets/seen.svg"
-    import coin from "$lib/assets/coin.svg"
+    import share from "$lib/assets/share.svg";
+    import seen from "$lib/assets/seen.svg";
+    // import coin from "$lib/assets/coin.svg"
     import { page } from "$app/state";
     import { lookup, params } from "$lib/clientstate/states.svelte";
 
@@ -97,12 +97,7 @@
 
                 let x = range.commonAncestorContainer;
                 while (x) {
-                    if (
-                        x.nodeType === Node.ELEMENT_NODE &&
-                        (x as Element).classList.contains(
-                            "highlightable-portion",
-                        )
-                    ) {
+                    if (x.nodeType === Node.ELEMENT_NODE && (x as Element).classList.contains("highlightable-portion")) {
                         break;
                     }
                     x = x.parentNode;
@@ -136,46 +131,13 @@
     // Check if current question has been seen
     const isQuestionSeen = $derived.by(() => {
         if (!question?.externalid) return false;
-        
+
         try {
             const seenInSessions = JSON.parse(localStorage.getItem("seen") || "[]");
             return seenInSessions.includes(question.externalid);
         } catch {
             return false;
         }
-    });
-
-    // Coin management functions
-    function getCoins(): number {
-        try {
-            return parseInt(localStorage.getItem("coins") || "0");
-        } catch {
-            return 0;
-        }
-    }
-
-    function addCoins(amount: number): void {
-        const currentCoins = getCoins();
-        localStorage.setItem("coins", (currentCoins + amount).toString());
-    }
-
-    function removeCoins(amount: number): void {
-        const currentCoins = getCoins();
-        const newAmount = Math.max(0, currentCoins - amount); // Don't go below 0
-        localStorage.setItem("coins", newAmount.toString());
-    }
-
-    // Get current coin count reactively
-    let coinCount = $state(getCoins());
-    
-    // Update coin count when localStorage changes
-    $effect(() => {
-        const updateCoins = () => {
-            coinCount = getCoins();
-        };
-        
-        window.addEventListener('storage', updateCoins);
-        return () => window.removeEventListener('storage', updateCoins);
     });
 
     function mathTypeParser(mathML: string) {
@@ -189,9 +151,7 @@
             Array.from(mfenceds).forEach((mfenced) => {
                 const open = mfenced.getAttribute("open") || "(";
                 const close = mfenced.getAttribute("close") || ")";
-                const separators = (
-                    mfenced.getAttribute("separators") || ","
-                ).split("");
+                const separators = (mfenced.getAttribute("separators") || ",").split("");
 
                 const children = Array.from(mfenced.children);
                 const mrow = doc.createElement("mrow");
@@ -207,8 +167,7 @@
 
                     if (i < children.length - 1) {
                         const moSep = doc.createElement("mo");
-                        moSep.textContent =
-                            separators[i] || separators[separators.length - 1];
+                        moSep.textContent = separators[i] || separators[separators.length - 1];
                         mrow.appendChild(moSep);
                     }
                 });
@@ -244,10 +203,6 @@
                 }
                 maxTries = max;
                 if (correct) {
-                    // Award coins for correct answer
-                    addCoins(5);
-                    coinCount = getCoins(); // Update reactive coin count
-                    
                     if (question.type === "mcq") {
                         isCorrect = question.answerOptions[selectedOption].id;
                     } else {
@@ -259,10 +214,6 @@
                     shown = true;
                 } else {
                     if (currentTries >= maxTries) {
-                        // Deduct coins for wrong answer (only when showing final result)
-                        removeCoins(5);
-                        coinCount = getCoins(); // Update reactive coin count
-                        
                         if (question.type === "mcq") {
                             isWrong = question.answerOptions[selectedOption].id;
                             isCorrect = question.keys[0];
@@ -273,10 +224,7 @@
                         shown = true;
                     } else {
                         currentTries++;
-                        await alert(
-                            "Incorrect answer",
-                            `You have ${maxTries - currentTries + 1} ${max - currentTries + 1 === 1 ? "try" : "tries"} remaining.`,
-                        );
+                        await alert("Incorrect answer", `You have ${maxTries - currentTries + 1} ${max - currentTries + 1 === 1 ? "try" : "tries"} remaining.`);
                     }
                 }
                 oldHideTimer = hideTimer;
@@ -294,37 +242,21 @@
     }
 </script>
 
-<svelte:window
-    onmouseupcapture={onselection}
-    ontouchendcapture={onselection}
-    onclick={() => (showOverviewPrompt = false)}
-/>
+<svelte:window onmouseupcapture={onselection} ontouchendcapture={onselection} onclick={() => (showOverviewPrompt = false)} />
 
-<div
-    data-dummy
-    class="bg-yellow-500/50 hover:bg-yellow-500 cursor-pointer sr-only math-container"
-></div>
+<div data-dummy class="bg-yellow-500/50 hover:bg-yellow-500 cursor-pointer sr-only math-container"></div>
 
 <div class="w-screen h-screen z-1000 flex flex-nowrap flex-col bg-white">
-    <div
-        class="header flex flex-row justify-between font-sans px-4 py-3 shrink-0 bg-blue-100"
-    >
+    <div class="header flex flex-row justify-between font-sans px-4 py-3 shrink-0 bg-blue-100">
         <div class="text-left flex flex-col gap-2">
             <div class="text-2xl font-bold">Questions and Answers</div>
             <div class="">Directions</div>
         </div>
-        <div
-            class="text-center absolute right-1/2 translate-x-1/2 gap-2 flex flex-col"
-        >
+        <div class="text-center absolute right-1/2 translate-x-1/2 gap-2 flex flex-col">
             <div class="text-2xl font-semibold">
                 {!hideTimer ? timer : "_"}
             </div>
-            <button
-                onclick={() => (hideTimer = !hideTimer)}
-                class="select-none cursor-pointer rounded-full px-3 font-bold text-sm border-1 border-black"
-            >
-                Hide
-            </button>
+            <button onclick={() => (hideTimer = !hideTimer)} class="select-none cursor-pointer rounded-full px-3 font-bold text-sm border-1 border-black"> Hide </button>
         </div>
         <div class="text-right flex flex-col items-end gap-1">
             <div class="text-xs font-bold">
@@ -332,29 +264,13 @@
             </div>
             <div class="flex-1 flex items-center justify-center flex-row gap-3">
                 {#if !history}
-                    <button
-                        onclick={() => (enableAnnotation = !enableAnnotation)}
-                        class="cursor-pointer flex flex-col items-center justify-center text-sm"
-                    >
+                    <button onclick={() => (enableAnnotation = !enableAnnotation)} class="cursor-pointer flex flex-col items-center justify-center text-sm">
                         <img src={stylus} alt="pencil" class="invert w-6 h-6" />
-                        <span class={enableAnnotation && "underline"}
-                            >Annotate</span
-                        >
+                        <span class={enableAnnotation && "underline"}>Annotate</span>
                     </button>
-                    <Dropdown
-                        ignoreStyling
-                        direction="right"
-                        items={["Stop and Exit"]}
-                        onselect={(i) => i === 0 && exitHandler()}
-                    >
-                        <span
-                            class="flex! flex-col! items-center justify-center text-sm cursor-pointer"
-                        >
-                            <img
-                                src={more}
-                                alt="pencil"
-                                class="invert w-6 h-6"
-                            />
+                    <Dropdown ignoreStyling direction="right" items={["Stop and Exit"]} onselect={(i) => i === 0 && exitHandler()}>
+                        <span class="flex! flex-col! items-center justify-center text-sm cursor-pointer">
+                            <img src={more} alt="pencil" class="invert w-6 h-6" />
                             <span>More</span>
                         </span>
                     </Dropdown>
@@ -363,44 +279,24 @@
         </div>
     </div>
     <hr />
-    <div
-        class="flex-1 flex flex-col lg:flex-row flex-nowrap px-15 overflow-y-auto"
-    >
+    <div class="flex-1 flex flex-col lg:flex-row flex-nowrap px-15 overflow-y-auto">
         {#if currentQuestionNumber !== -1}
             {#if question.type === "mcq" && question.stimulus}
-                <section
-                    class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2"
-                >
+                <section class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
                     {@html question.stimulus}
                 </section>
             {/if}
-            <section
-                class="{!(question.type === 'mcq' && question.stimulus)
-                    ? 'max-w-160 min-w-160 mx-auto'
-                    : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1"
-            >
+            <section class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
                 <div class="flex flex-col flex-nowrap">
-                    <div
-                        class="flex flex-row font-sans items-center justify-center border-b-2"
-                    >
-                        <div
-                            class="px-2 h-8 bg-black text-white flex items-center justify-center gap-2"
-                        >
+                    <div class="flex flex-row font-sans items-center justify-center border-b-2">
+                        <div class="px-2 h-8 bg-black text-white flex items-center justify-center gap-2">
                             {currentQuestionNumberShow}
                             {#if isQuestionSeen}
                                 <img src={seen} alt="Previously seen" class="w-4 h-4 invert" />
                             {/if}
                         </div>
-                        <div
-                            class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1"
-                        >
-                            <button
-                                onclick={() =>
-                                    (questionShouldBeReviewed =
-                                        !questionShouldBeReviewed)}
-                                class="cursor-pointer text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total &&
-                                    'opacity-50 cursor-not-allowed'}"
-                            >
+                        <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
+                            <button onclick={() => (questionShouldBeReviewed = !questionShouldBeReviewed)} class="cursor-pointer text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-not-allowed'}">
                                 {#if questionShouldBeReviewed}
                                     <img src={bookmarked} alt="boomarkable" />
                                 {:else}
@@ -408,14 +304,7 @@
                                 {/if}
                                 <span> Mark for Review </span>
                             </button>
-                            <button
-                                onclick={() =>
-                                    (enableStriking = !enableStriking)}
-                                class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking &&
-                                    '!bg-blue-800 text-white'} border-black border-2 rounded-md"
-                            >
-                                ABC
-                            </button>
+                            <button onclick={() => (enableStriking = !enableStriking)} class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking && '!bg-blue-800 text-white'} border-black border-2 rounded-md"> ABC </button>
                         </div>
                     </div>
                     <div class="py-3 highlightable-portion">
@@ -426,26 +315,13 @@
                             {#each question.answerOptions as { id, content }, i}
                                 <div class="flex flex-row">
                                     <button
-                                        onclick={() =>
-                                            !history &&
-                                            (!enableStriking ||
-                                                !eliminated[id]) &&
-                                            (selectedOption = i)}
-                                        class="flex flex-row items-center w-full relative {eliminated[
-                                            id
-                                        ] &&
-                                            enableStriking &&
-                                            'before:-ml-4 before:border-1 before:w-full opacity-50 !cursor-not-allowed before:top-1/2 before:-translate-y-1/2 before:absolute'}
+                                        onclick={() => !history && (!enableStriking || !eliminated[id]) && (selectedOption = i)}
+                                        class="flex flex-row items-center w-full relative {eliminated[id] && enableStriking && 'before:-ml-4 before:border-1 before:w-full opacity-50 !cursor-not-allowed before:top-1/2 before:-translate-y-1/2 before:absolute'}
                                 py-3 px-4 border-2 border-neutral-500 gap-5
-                                rounded-lg cursor-pointer hover:bg-blue-300/50 {selectedOption ===
-                                            i && '!bg-blue-800 text-white'}
-                                transition-colors {isCorrect === id &&
-                                            '!bg-green-800 text-white'} {isWrong ===
-                                            id && '!bg-red-800 text-white'}"
+                                rounded-lg cursor-pointer hover:bg-blue-300/50 {selectedOption === i && '!bg-blue-800 text-white'}
+                                transition-colors {isCorrect === id && '!bg-green-800 text-white'} {isWrong === id && '!bg-red-800 text-white'}"
                                     >
-                                        <span
-                                            class="font-sans flex items-center justify-center w-7 h-7 font-bold border-2 rounded-full grow-0 shrink-0 select-none"
-                                        >
+                                        <span class="font-sans flex items-center justify-center w-7 h-7 font-bold border-2 rounded-full grow-0 shrink-0 select-none">
                                             {["A", "B", "C", "D", "E", "F"][i]}
                                         </span>
                                         <span class="text-left">
@@ -454,18 +330,12 @@
                                     </button>
                                     {#if enableStriking}
                                         <button
-                                            onclick={() =>
-                                                (eliminated[id] =
-                                                    !eliminated[id])}
+                                            onclick={() => (eliminated[id] = !eliminated[id])}
                                             class="flex flex-row items-center justify-center w-16
                                     rounded-lg cursor-pointer group"
                                         >
-                                            <span
-                                                class="transition-colors group-hover:bg-blue-500/50 relative before:border-1 before:w-3 before:absolute font-sans flex items-center justify-center w-5 h-5 text-xs border-2 rounded-full grow-0 shrink-0 select-none"
-                                            >
-                                                {["A", "B", "C", "D", "E", "F"][
-                                                    i
-                                                ]}
+                                            <span class="transition-colors group-hover:bg-blue-500/50 relative before:border-1 before:w-3 before:absolute font-sans flex items-center justify-center w-5 h-5 text-xs border-2 rounded-full grow-0 shrink-0 select-none">
+                                                {["A", "B", "C", "D", "E", "F"][i]}
                                             </span>
                                         </button>
                                     {/if}
@@ -473,86 +343,38 @@
                             {/each}
                         {:else}
                             <div class="flex flex-row items-center gap-2">
-                                <div
-                                    class="border-2 rounded-2xl w-24 p-2 font-mono"
-                                >
-                                    <input
-                                        disabled={shown}
-                                        type="text"
-                                        class="p-2 w-full border-b-2"
-                                        bind:value={selectedOption}
-                                    />
+                                <div class="border-2 rounded-2xl w-24 p-2 font-mono">
+                                    <input disabled={shown} type="text" class="p-2 w-full border-b-2" bind:value={selectedOption} />
                                 </div>
                                 {#if shown}
                                     {#if isCorrect === selectedOption}
-                                        <div class="text-green-700">
-                                            Correct!
-                                        </div>
+                                        <div class="text-green-700">Correct!</div>
                                     {:else}
-                                        <div class="text-red-500">
-                                            Incorrect.
-                                        </div>
+                                        <div class="text-red-500">Incorrect.</div>
                                     {/if}
                                 {/if}
                             </div>
                         {/if}
                     </div>
                     {#if shown}
-                        <div
-                            class="flex flex-col p-2 bg-blue-50 rounded-2xl my-4"
-                        >
+                        <div class="flex flex-col p-2 bg-blue-50 rounded-2xl my-4">
                             <div class="p-2 bg-blue-100 rounded-2xl mb-2">
-                                The answer{question.correct_answer.length > 1
-                                    ? "s"
-                                    : ""} was {question.correct_answer}.
+                                The answer{question.correct_answer.length > 1 ? "s" : ""} was {question.correct_answer}.
                                 {#if history}
-                                    <span
-                                        class={!question.keys.includes(
-                                            history.selected,
-                                        )
-                                            ? "text-red-500"
-                                            : "text-green-700"}
-                                    >
+                                    <span class={!question.keys.includes(history.selected) ? "text-red-500" : "text-green-700"}>
                                         {#if !history.selected}
                                             You did not answer this question
                                         {:else}
-                                            You answered {question.type ===
-                                            "mcq"
-                                                ? question.answerOptions.find(
-                                                      (v) =>
-                                                          v.id ===
-                                                          history.selected,
-                                                  )?.content
-                                                : history.selected}
+                                            You answered {question.type === "mcq" ? question.answerOptions.find((v) => v.id === history.selected)?.content : history.selected}
                                         {/if}
                                     </span>
                                 {/if}
                             </div>
                             <div class="p-2 bg-blue-100 rounded-2xl mb-2">
-                                This was a{["A", "E", "I", "O", "U"].includes(
-                                    questionOutside.primary_class_cd_desc.at(0),
-                                )
-                                    ? "n"
-                                    : ""}
-                                <b
-                                    >{questionOutside.primary_class_cd_desc}: {questionOutside.skill_desc}</b
-                                >
-                                question with a{[
-                                    "A",
-                                    "E",
-                                    "I",
-                                    "O",
-                                    "U",
-                                ].includes(questionOutside.difficulty.at(0))
-                                    ? "n"
-                                    : ""}
-                                <b
-                                    >{questionOutside.difficulty === "E"
-                                        ? "easy"
-                                        : questionOutside.difficulty === "M"
-                                          ? "medium"
-                                          : "hard"}</b
-                                >
+                                This was a{["A", "E", "I", "O", "U"].includes(questionOutside.primary_class_cd_desc.at(0)) ? "n" : ""}
+                                <b>{questionOutside.primary_class_cd_desc}: {questionOutside.skill_desc}</b>
+                                question with a{["A", "E", "I", "O", "U"].includes(questionOutside.difficulty.at(0)) ? "n" : ""}
+                                <b>{questionOutside.difficulty === "E" ? "easy" : questionOutside.difficulty === "M" ? "medium" : "hard"}</b>
                                 difficulty (CB level of
                                 <b>{questionOutside.score_band_range_cd}</b>)
                             </div>
@@ -562,76 +384,55 @@
                                     resetStyling
                                     onclick={() => {
                                         navigator.clipboard.writeText(
-                                            (question.type === "mcq" &&
-                                            question.stimulus
-                                                ? `Context: ${question.stimulus}\n`
-                                                : "") +
+                                            (question.type === "mcq" && question.stimulus ? `Context: ${question.stimulus}\n` : "") +
                                                 `Question: ${question.stem}` +
-                                                (question.type === "mcq" &&
-                                                question.answerOptions
+                                                (question.type === "mcq" && question.answerOptions
                                                     ? `\nChoices: ` +
-                                                      question.answerOptions.map(
-                                                          (
-                                                              { id, content },
-                                                              i,
-                                                          ) => {
-                                                              return `\n${["A", "B", "C", "D", "E", "F"][i]}: ${content}`;
-                                                          },
-                                                      )
+                                                      question.answerOptions.map(({ id, content }, i) => {
+                                                          return `\n${["A", "B", "C", "D", "E", "F"][i]}: ${content}`;
+                                                      })
                                                     : ""),
                                         );
                                     }}
                                 >
-                                    <div
-                                        class="w-full flex flex-row gap-2 text-black"
-                                    >
-                                        <img
-                                            src={copy}
-                                            alt="Copy the question"
-                                        />
-                                        <span
-                                            >Copy raw question to clipboard</span
-                                        >
+                                    <div class="w-full flex flex-row gap-2 text-black">
+                                        <img src={copy} alt="Copy the question" />
+                                        <span>Copy raw question to clipboard</span>
                                     </div>
                                 </Button>
                                 <Button
                                     class="flex-1 mb-2 cursor-pointer p-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 transition-all rounded-2xl"
                                     resetStyling
                                     onclick={() => {
-                                        if (navigator.canShare && navigator.canShare({
-                                            url: page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + params.params
-                                        })) {
-                                            navigator.share({
-                                                url: page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + params.params
+                                        if (
+                                            navigator.canShare &&
+                                            navigator.canShare({
+                                                url: page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params,
                                             })
+                                        ) {
+                                            navigator.share({
+                                                url: page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params,
+                                            });
                                         } else {
-                                            navigator.clipboard.writeText(page.url.hostname + '/questiongets/justone?start=' + question.externalid + '&jsonparams=' + params.params)
+                                            navigator.clipboard.writeText(page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params);
                                         }
                                     }}
                                 >
-                                    <div
-                                        class="w-full flex flex-row gap-2 text-black"
-                                    >
-                                        <img
-                                            src={share}
-                                            alt="Share the question"
-                                        />
-                                        <span
-                                            >Share question link</span
-                                        >
+                                    <div class="w-full flex flex-row gap-2 text-black">
+                                        <img src={share} alt="Share the question" />
+                                        <span>Share question link</span>
                                     </div>
                                 </Button>
                             </div>
-                            <div class="p-2 bg-blue-100 rounded-2xl mb-2 flex items-center justify-between">
+                            <!-- <div class="p-2 bg-blue-100 rounded-2xl mb-2 flex items-center justify-between">
                                 <div class="flex items-center gap-2 text-sm font-bold">
                                     <img src={coin} alt="coins" class="w-5 h-5" />
                                     <span>Current Balance: {coinCount} coins</span>
                                 </div>
+                            </div> -->
+                            <div class="p-2 bg-yellow-400 rounded-2xl hidden">
+                                Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no money in having you get a good score the first time around.
                             </div>
-                            <!--                        <div class="p-2 bg-yellow-400 rounded-2xl">-->
-                            <!--                            Warning: the CollegeBoard's explanation may try to confuse you. After all, they hold no-->
-                            <!--                            money in having you get a good score the first time around.-->
-                            <!--                        </div>-->
                             <div class="p-2 text-base flex flex-col gap-3">
                                 {@html mathTypeParser(question.rationale)}
                             </div>
@@ -644,18 +445,11 @@
         {/if}
     </div>
     <hr />
-    <div
-        class="shrink-0 flex flex-row justify-between relative font-sans p-5 bg-blue-100"
-    >
+    <div class="shrink-0 flex flex-row justify-between relative font-sans p-5 bg-blue-100">
         <div class="text-left flex flex-col gap-2 font-bold p-2">Smart kid</div>
-        <div
-            class="text-center absolute right-1/2 translate-x-1/2 gap-2 flex flex-col"
-        >
+        <div class="text-center absolute right-1/2 translate-x-1/2 gap-2 flex flex-col">
             {#if total !== null && showOverviewPrompt}
-                <div
-                    transition:fade={{ duration: 100, easing: cubicOut }}
-                    class="z-500 right-1/2 translate-x-1/2 bottom-14 shadow-2xl absolute min-w-80 flex flex-col items-center justify-center flex-nowrap bg-gray-100 rounded-xl"
-                >
+                <div transition:fade={{ duration: 100, easing: cubicOut }} class="z-500 right-1/2 translate-x-1/2 bottom-14 shadow-2xl absolute min-w-80 flex flex-col items-center justify-center flex-nowrap bg-gray-100 rounded-xl">
                     {@render miniOverviewSnippet?.()}
                 </div>
             {/if}
@@ -664,8 +458,7 @@
                     e.stopPropagation();
                     if (total) showOverviewPrompt = !showOverviewPrompt;
                 }}
-                class="{total &&
-                    'cursor-pointer'} bg-gray-950 text-white py-2 px-4 rounded-md font-bold flex flex-row items-center justify-center"
+                class="{total && 'cursor-pointer'} bg-gray-950 text-white py-2 px-4 rounded-md font-bold flex flex-row items-center justify-center"
             >
                 <span>
                     {#if currentQuestionNumber === -1}
@@ -686,9 +479,7 @@
                     disabled={total ? false : selectedOption === undefined}
                     resetStyling
                     class="bg-blue-700
-            {!(total ? false : selectedOption === undefined)
-                        ? 'hover:bg-blue-600 active:bg-blue-500 cursor-pointer'
-                        : '!bg-gray-600'} transition-colors
+            {!(total ? false : selectedOption === undefined) ? 'hover:bg-blue-600 active:bg-blue-500 cursor-pointer' : '!bg-gray-600'} transition-colors
             text-white font-bold px-6 rounded-full py-2"
                     onclick={onNextHandler}
                 >
@@ -699,9 +490,7 @@
                     <Button
                         resetStyling
                         disabled={currentQuestionNumberShow === 1}
-                        class="{currentQuestionNumberShow !== 1
-                            ? 'bg-blue-700 hover:bg-blue-600 active:bg-blue-500 cursor-pointer'
-                            : '!bg-gray-600'} transition-colors
+                        class="{currentQuestionNumberShow !== 1 ? 'bg-blue-700 hover:bg-blue-600 active:bg-blue-500 cursor-pointer' : '!bg-gray-600'} transition-colors
                 text-white font-bold px-6 rounded-full py-2"
                         onclick={previousQuestionHandler}>Previous</Button
                     >
@@ -710,9 +499,7 @@
                     disabled={total ? false : selectedOption === undefined}
                     resetStyling
                     class="bg-blue-700
-            {!(total ? false : selectedOption === undefined)
-                        ? 'hover:bg-blue-600 active:bg-blue-500 cursor-pointer'
-                        : '!bg-gray-600'} transition-colors
+            {!(total ? false : selectedOption === undefined) ? 'hover:bg-blue-600 active:bg-blue-500 cursor-pointer' : '!bg-gray-600'} transition-colors
             text-white font-bold px-6 rounded-full py-2"
                     onclick={onNextHandler}
                 >
