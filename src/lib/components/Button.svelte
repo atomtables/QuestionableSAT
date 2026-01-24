@@ -16,15 +16,18 @@
 
     let resolving = $state(false);
 
-    const handleClick = async () => {
+    const handleClick = () => {
         if (disabled || resolving) return;
 
-        resolving = true;
-        try {
-            await Promise.resolve(onclick?.(new CustomEvent(`onClickButton-${name}`)));
-        } finally {
-            resolving = false;
-        }
+        new Promise(async (res) => {
+            resolving = true;
+            try {
+                await Promise.resolve(onclick?.(new CustomEvent(`onClickButton-${name}`)));
+            } finally {
+                resolving = false;
+            }
+            res(true);
+        })
     };
 </script>
 
