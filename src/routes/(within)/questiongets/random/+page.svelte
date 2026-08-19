@@ -6,12 +6,12 @@
     import type {LookupData, Question, QuestionDetail, QuestionDetailMCQ} from "$lib/types/types";
     import { alert } from "$lib/components/Dialog.svelte"
     import {lookup, questions, selectedDetails} from "$lib/clientstate/states.svelte";
-    import Input from "$lib/components/Input.svelte";
     import Button from "$lib/components/Button.svelte";
     import {slide} from "svelte/transition";
-    import Spinner from "$lib/components/Spinner.svelte";
-    import {loadMCQQuestionThroughJSON} from "$lib/helpers/loadjson";
     import { loadQuestion } from "$lib/helpers/loadend";
+
+    const debugRandom = (...args: unknown[]) => console.debug("[questiongets/random]", ...args);
+    const errorRandom = (...args: unknown[]) => console.error("[questiongets/random]", ...args);
 
     let {
         data
@@ -34,7 +34,7 @@
     let currentQuestionNumber: number = $state(0)
     let currentQuestion: QuestionDetail = $state()
     let currentQuestionOutside: Question = $state()
-    let selectedOption: number = $state()
+    let selectedOption: number | undefined = $state()
     let decreased: boolean = $state(false)
 
     let timetogo: boolean = $state(false)
@@ -46,7 +46,12 @@
     }][] = $state([])
 
     function getRandomFromArray<T>(arr: Array<T>) {
-        return arr[Math.floor(Math.random() * arr.length)]
+        if (!arr.length) {
+            throw new Error("[questiongets/random] getRandomFromArray was called with an empty array.");
+        }
+        const picked = arr[Math.floor(Math.random() * arr.length)];
+        debugRandom("Picked random candidate", { length: arr.length, picked });
+        return picked;
     }
     const lookupData = $derived(Object.values(lookup.lookupData.domain)[selectedDetails.section])
     const appliedFilters = (question: Question) => {
@@ -67,81 +72,179 @@
             (!selectedDetails.ignoreLive || (!lookup.mathLiveItems.includes(question.external_id) && !lookup.readingLiveItems.includes(question.external_id)))
     }
     async function getNextQuestion() {
+        debugRandom("getNextQuestion() invoked", {
+            currentQuestionNumberIndex,
+            currentQuestionNumber,
+            timetogo,
+            currentStreak,
+            ignoreViewed,
+            tries,
+            maxStreak,
+            historyLength: currentQuestionHistory.length,
+        });
         let seenInSessions: string[];
         try {
-            seenInSessions = JSON.parse(localStorage.getItem("seen"));
+            seenInSessions = JSON.parse(localStorage.getItem("seen") ?? "[]");
+            debugRandom("Loaded seen session cache", { count: seenInSessions.length });
         } catch {
             seenInSessions = []
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
             localStorage.setItem("seen", JSON.stringify([]))
+            errorRandom("Seen session cache was invalid JSON and had to be reset.");
         }
-        let bank: Question[] = (await questions[0])
+        const allQuestions = await questions[0];
+        debugRandom("Question bank resolved", { totalQuestions: allQuestions.length });
+        let bank: Question[] = allQuestions
             .filter(v => appliedFilters(v)) // fits the filters the user has applied
             .filter(v => !currentQuestionHistory.some(x => x[0].externalid === v.external_id) || !currentQuestionHistory.some(x => x[0].externalid === v.ibn)) // ignore seen questions
-        // console.log(bank)
+        debugRandom("Filtered bank ready", { filteredCount: bank.length, ignoreViewed, selectedDetails });
         if (ignoreViewed) {
             bank = bank.filter(v => !seenInSessions.includes(v.external_id))
+            debugRandom("Applied viewed-question filter", { remainingCount: bank.length });
         }
         if (bank.length < 1) {
+            errorRandom("No questions were available after filtering.", {
+                ignoreViewed,
+                selectedDetails,
+                historyLength: currentQuestionHistory.length,
+            });
             await alert("Out of questions", "You have reached the end of your selected questions.")
-            return
+            throw new Error("[questiongets/random] No questions were available after filtering.");
         }
-        let random = getRandomFromArray(bank)
-        let val = null;
-        while (true) {
-            val = loadQuestion(random);
-            if (val === null) continue;
-            currentQuestion = val
-            break;
+
+        let loaded: QuestionDetail | null = null;
+        let lastLoadError: unknown = null;
+        const maxAttempts = Math.max(5, bank.length * 2);
+        for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+            const random = getRandomFromArray(bank);
+            debugRandom("Attempting to load candidate question", {
+                attempt,
+                maxAttempts,
+                external_id: random.external_id,
+                ibn: random.ibn,
+                primary_class_cd: random.primary_class_cd,
+                skill_desc: random.skill_desc,
+            });
+            try {
+                const candidate = await loadQuestion(random);
+                if (!candidate) {
+                    debugRandom("loadQuestion returned null; retrying with a different candidate.", {
+                        attempt,
+                        external_id: random.external_id,
+                        ibn: random.ibn,
+                    });
+                    continue;
+                }
+                loaded = candidate;
+                currentQuestionOutside = random;
+                currentQuestion = candidate;
+                debugRandom("Loaded question successfully", {
+                    attempt,
+                    questionType: candidate.type,
+                    externalid: candidate.externalid,
+                    keys: candidate.keys,
+                });
+                break;
+            } catch (error) {
+                lastLoadError = error;
+                errorRandom("loadQuestion threw while loading a candidate question.", {
+                    attempt,
+                    external_id: random.external_id,
+                    ibn: random.ibn,
+                    error,
+                });
+            }
         }
-        currentQuestionOutside = random
+        if (!loaded) {
+            await alert("Unable to load question", "We found questions in your filtered bank, but could not load a valid question detail object.");
+            throw lastLoadError ?? new Error("[questiongets/random] Could not load a valid question after multiple attempts.");
+        }
         currentQuestionNumber++;
         currentQuestionNumberIndex++;
         selectedOption = undefined
         decreased = false
         timerInt = 0
         timer = '0:00'
+        debugRandom("Question prepared for display", {
+            currentQuestionNumber,
+            currentQuestionNumberIndex,
+            externalid: currentQuestion?.externalid,
+            outsideExternalId: currentQuestionOutside?.external_id,
+        });
         timerHandler = setInterval(() => {
             timerInt++;
             timer = `${Math.floor(timerInt / 60)}:${timerInt % 60 < 10 ? '0' + (timerInt % 60).toString() : (timerInt % 60).toString()}`
         }, 1000)
     }
     async function submitHandler(): Promise<[boolean, number]> {
+        debugRandom("submitHandler() invoked", {
+            currentQuestionNumber,
+            currentQuestionNumberIndex,
+            questionType: currentQuestion?.type,
+            externalid: currentQuestion?.externalid,
+            selectedOption,
+            timerInt,
+        });
+        if (!currentQuestion) {
+            throw new Error("[questiongets/random] submitHandler was called without a currentQuestion.");
+        }
+        if (selectedOption === undefined || selectedOption === null) {
+            throw new Error("[questiongets/random] submitHandler was called without a selectedOption.");
+        }
         let seenInSessions: string[];
         try {
-            seenInSessions = JSON.parse(localStorage.getItem("seen"));
+            seenInSessions = JSON.parse(localStorage.getItem("seen") ?? "[]");
         } catch {
             seenInSessions = []
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.")
             localStorage.setItem("seen", JSON.stringify([]))
+            errorRandom("Seen session cache was invalid JSON and had to be reset during submit.");
         }
-        // console.log(currentQuestion.keys, selectedOption)
+        debugRandom("Submitting question answer", {
+            questionKeys: currentQuestion.keys,
+            selectedOption,
+            answerOptionsLength: currentQuestion.type === "mcq" ? currentQuestion.answerOptions.length : null,
+        });
         clearInterval(timerHandler)
-        currentQuestionHistory.push([currentQuestion, currentQuestionOutside, {
-            correct: currentQuestion.type === 'mcq' ?
-                currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) :
-                currentQuestion.keys.includes(selectedOption.toString()),
-            selected: currentQuestion.type === 'mcq' ?
-                currentQuestion.answerOptions[selectedOption].id :
-                selectedOption.toString(),
-            timeInt: timerInt
-        }])
+        if (currentQuestion.type === "mcq") {
+            const selectedAnswer = currentQuestion.answerOptions[selectedOption as number];
+            if (!selectedAnswer) {
+                throw new Error(`[questiongets/random] Selected option ${selectedOption} is out of bounds for the current MCQ.`);
+            }
+            currentQuestionHistory.push([currentQuestion, currentQuestionOutside, {
+                correct: currentQuestion.keys.includes(selectedAnswer.id),
+                selected: selectedAnswer.id,
+                timeInt: timerInt
+            }])
+        } else {
+            currentQuestionHistory.push([currentQuestion, currentQuestionOutside, {
+                correct: currentQuestion.keys.includes(selectedOption.toString()),
+                selected: selectedOption.toString(),
+                timeInt: timerInt
+            }])
+        }
         seenInSessions.push(currentQuestion.externalid)
         localStorage.setItem("seen", JSON.stringify(seenInSessions))
-        if (currentQuestion.type === 'mcq' ?
-            currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) :
-            currentQuestion.keys.includes(selectedOption.toString())) {
+        const isCorrect = currentQuestion.type === 'mcq' ?
+            currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption as number]?.id) :
+            currentQuestion.keys.includes(selectedOption.toString());
+        debugRandom("Answer submission evaluated", { isCorrect, selectedOption, timerInt, currentStreak, tries, maxStreak });
+        if (isCorrect) {
             currentStreak += 1
-            if (maxStreak && currentStreak >= maxStreak)
+            if (maxStreak && currentStreak >= maxStreak) {
+                debugRandom("Max streak reached; finishing session.", { currentStreak, maxStreak });
                 return [true, -1]
+            }
             return [true, 0]
         } else {
             decreased = true
             currentStreak = 0
+            debugRandom("Answer was incorrect.", { tries, currentStreak, decreased });
             return [false, tries]
         }
     }
     async function exit() {
+        debugRandom("exit() invoked", { timetogo, currentQuestionNumber, currentQuestionNumberIndex, historyLength: currentQuestionHistory.length });
         timetogo = true
         clearTimeout(timerHandler)
     }
@@ -149,15 +252,22 @@
 
     onMount(() => {
         const urlParams = new URLSearchParams(window.location.search);
+        debugRandom("onMount() URL parameters", Object.fromEntries(urlParams.entries()));
         tries = parseInt(urlParams.get("tries"))
         ignoreViewed = urlParams.get("ignoreViewed") || true
         maxStreak = isNaN(parseInt(urlParams.get("streak"))) ? 0 : parseInt(urlParams.get("streak"))
 
-        if (isNaN(tries)) goto("/questiongets")
+        debugRandom("Parsed runtime settings", { tries, ignoreViewed, maxStreak });
+
+        if (isNaN(tries)) {
+            errorRandom("Missing or invalid tries parameter. Redirecting back to question gets.");
+            goto("/questiongets")
+        }
 
         getNextQuestion()
 
         return () => {
+            debugRandom("onMount() cleanup", { currentQuestionNumber, currentQuestionNumberIndex, historyLength: currentQuestionHistory.length });
             clearInterval(timerHandler)
         }
     })

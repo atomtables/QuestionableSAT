@@ -24,14 +24,14 @@
     let selectedSkillQuestions: Question[] = $state([]);
     let selectedSkillName = $state("");
     let currentQuestionIndex = $state(0);
-    let currentQuestion: QuestionDetail = $state(null);
-    let selectedOption: number | string = $state();
+    let currentQuestion: QuestionDetail | null = $state(null);
+    let selectedOption: number | string | undefined = $state();
     let isViewingQuestion = $state(false);
     let timer = $state("00:00");
 
     // Timer state
     let timerSeconds = $state(0);
-    let timerInterval: ReturnType<typeof setInterval> = $state(null);
+    let timerInterval: ReturnType<typeof setInterval> | null = $state(null);
     let questionTimers: number[] = $state([]); // Track time spent on each question
 
     // Track filtering state for spinner
@@ -144,18 +144,19 @@
     }
 
     async function submitHandler(): Promise<[boolean, number]> {
+        if (!currentQuestion) throw Error("Current question is null but something was submitted...");
         let seenInSessions: string[];
         try {
-            seenInSessions = JSON.parse(localStorage.getItem("seen"));
+            seenInSessions = JSON.parse(localStorage.getItem("seen") ?? "");
         } catch {
             seenInSessions = [];
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.");
             localStorage.setItem("seen", JSON.stringify([]));
         }
-        clearInterval(timerInterval);
+        if (timerInterval) clearInterval(timerInterval);
         seenInSessions.push(currentQuestion.externalid);
         localStorage.setItem("seen", JSON.stringify(seenInSessions));
-        if (currentQuestion.type === "mcq" ? currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption].id) : currentQuestion.keys.includes(selectedOption.toString())) {
+        if (selectedOption && (currentQuestion.type === "mcq" ? currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption as number].id) : currentQuestion.keys.includes(selectedOption.toString()))) {
             return [true, 0];
         } else {
             return [false, 0];
@@ -201,7 +202,7 @@
     });
 
     // Group questions by skill - optimized version
-    const questionsBySkill = (questions, sectionOverride = null) => {
+    const questionsBySkill = (questions: Question[], sectionOverride: number | null = null) => {
         let filteredQuestions = (() => {
             if (!questions.length) return [];
             // Early return if no difficulty levels selected
@@ -493,7 +494,7 @@
                                                     </div>
                                                 </button>
                                                 {#if collapsedSkills.has(skillText)}
-                                                    {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc, question) => {
+                                                    {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc: {[key: string]: Question[]}, question) => {
                                                         const skillCode = question.skill_cd;
                                                         if (!acc[skillCode]) {
                                                             acc[skillCode] = [];
@@ -588,7 +589,7 @@
 
                                                 <!-- Collapsible content -->
                                                 {#if collapsedSkills.has(skillText)}
-                                                    {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc, question) => {
+                                                    {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc: {[key: string]: Question[]}, question) => {
                                                         const skillCode = question.skill_cd;
                                                         if (!acc[skillCode]) {
                                                             acc[skillCode] = [];
@@ -699,7 +700,7 @@
 
                                         <!-- Collapsible content -->
                                         {#if collapsedSkills.has(skillText)}
-                                            {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc, question) => {
+                                            {@const questionsBySkillCode: {[key: string]: Question[]} = skillQuestions.reduce((acc: {[key: string]: Question[]}, question) => {
                                                 const skillCode = question.skill_cd;
                                                 if (!acc[skillCode]) {
                                                     acc[skillCode] = [];

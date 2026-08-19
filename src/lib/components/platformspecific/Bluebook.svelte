@@ -16,13 +16,16 @@
     import seen from "$lib/assets/seen.svg";
     // import coin from "$lib/assets/coin.svg"
     import { page } from "$app/state";
-    import { lookup, params } from "$lib/clientstate/states.svelte";
+    import { params } from "$lib/clientstate/states.svelte";
 
-    let maxTries: number = $state();
+    const debugBluebook = (...args: unknown[]) => console.debug("[Bluebook]", ...args);
+    const errorBluebook = (...args: unknown[]) => console.error("[Bluebook]", ...args);
+
+    let maxTries: number | null = $state(null);
     let currentTries: number = $state(0);
     let shown: boolean = $state(false);
-    let isCorrect: string = $state(null);
-    let isWrong: string = $state(null);
+    let isCorrect: string | null = $state(null);
+    let isWrong: string | null = $state(null);
     let hideTimer: boolean = $state(false);
     let oldHideTimer: boolean = $state(false);
     let timeToExit: boolean = $state(false);
@@ -42,15 +45,15 @@
         exitHandler,
         history = null,
         status = $bindable(),
-        miniOverviewSnippet = null,
-        overviewSnippet = null,
+        miniOverviewSnippet = undefined,
+        overviewSnippet = undefined,
         questionShouldBeReviewed = $bindable(),
     }: {
         question: QuestionDetail;
         currentQuestionNumberShow: number;
         currentQuestionNumber: number;
         total: number | null;
-        selectedOption: number | string;
+        selectedOption: number | string | undefined;
         submitHandler: () => Promise<[boolean, number | null] | void>;
         nextQuestionHandler: () => Promise<void>;
         previousQuestionHandler: () => Promise<void>;
@@ -61,11 +64,32 @@
             selected: string;
             exit: () => void;
         } | null;
-        status: string;
+        status: string | null;
         miniOverviewSnippet?: Snippet;
         overviewSnippet?: Snippet;
-        questionShouldBeReviewed: boolean;
+        questionShouldBeReviewed: boolean | null;
     } = $props();
+
+    $effect(() => {
+        debugBluebook("render snapshot", {
+            currentQuestionNumber,
+            currentQuestionNumberShow,
+            total,
+            timer,
+            status,
+            shown,
+            hideTimer,
+            timeToExit,
+            showOverviewPrompt,
+            currentTries,
+            maxTries,
+            selectedOption,
+            historyPresent: !!history,
+            questionType: question?.type,
+            questionExternalId: question?.externalid,
+            questionOutsideExternalId: questionOutside?.external_id,
+        });
+    });
 
     // $effect(() => {
     //     console.log($state.snapshot(question?.correct_answer));
@@ -79,41 +103,74 @@
     });
 
     onMount(() => {
+        debugBluebook("mounted", {
+            currentQuestionNumber,
+            currentQuestionNumberShow,
+            total,
+            timer,
+            status,
+            historyPresent: !!history,
+            questionType: question?.type,
+            questionExternalId: question?.externalid,
+        });
         if (history) {
             shown = true;
             isCorrect = question.keys[0];
             if (history.selected !== isCorrect) {
                 isWrong = history.selected;
             }
+            debugBluebook("history restored on mount", {
+                selected: history.selected,
+                isCorrect,
+                isWrong,
+            });
         }
     });
 
     let enableAnnotation = $state(false);
     function onselection() {
+        debugBluebook("selection handler fired", {
+            enableAnnotation,
+            questionType: question?.type,
+            questionExternalId: question?.externalid,
+        });
         if (enableAnnotation) {
             const selection = document.getSelection();
-            if (selection.rangeCount > 0 && !selection.isCollapsed) {
+            if (selection && selection.rangeCount > 0 && !selection.isCollapsed) {
                 const range = selection.getRangeAt(0);
+                if (!range) {
+                    throw new Error("[Bluebook] Selection range was missing even though selection.rangeCount > 0.");
+                }
 
-                let x = range.commonAncestorContainer;
+                let x: Node | null = range.commonAncestorContainer;
                 while (x) {
                     if (x.nodeType === Node.ELEMENT_NODE && (x as Element).classList.contains("highlightable-portion")) {
                         break;
                     }
                     x = x.parentNode;
                 }
-                if (x === null) return;
+                if (x === null) {
+                    debugBluebook("selection ignored because it was outside a highlightable portion.", {
+                        selectedText: selection.toString(),
+                    });
+                    return;
+                }
+
+                debugBluebook("annotating selected text", {
+                    selectedText: selection.toString(),
+                    selectedLength: selection.toString().length,
+                });
 
                 const span = document.createElement("span");
                 span.classList.add("bg-yellow-500/50");
                 span.classList.add("hover:bg-yellow-500");
                 span.classList.add("cursor-pointer");
-                span.onclick = (e) => {
+                span.onclick = () => {
                     const parent = span.parentNode;
                     while (span.firstChild) {
-                        parent.insertBefore(span.firstChild, span);
+                        parent?.insertBefore(span.firstChild, span);
                     }
-                    parent.removeChild(span);
+                    parent?.removeChild(span);
                 };
                 const selectedContent = range.extractContents();
                 span.appendChild(selectedContent);
@@ -129,21 +186,32 @@
     let copied2 = $state(false);
 
     let enableStriking = $state(false);
-    let eliminated = $state({});
+    let eliminated: {[key: string]: any} = $state({});
 
     // Check if current question has been seen
     const isQuestionSeen = $derived.by(() => {
-        if (!question?.externalid) return false;
+        if (!question?.externalid) {
+            debugBluebook("question is missing externalid; seen-state will default to false.", {
+                questionType: question?.type,
+            });
+            return false;
+        }
 
         try {
             const seenInSessions = JSON.parse(localStorage.getItem("seen") || "[]");
-            return seenInSessions.includes(question.externalid);
-        } catch {
+            const seen = seenInSessions.includes(question.externalid);
+            debugBluebook("resolved seen-state", { questionExternalId: question.externalid, seen });
+            return seen;
+        } catch (error) {
+            errorBluebook("failed to read seen-state from localStorage", { error, questionExternalId: question.externalid });
             return false;
         }
     });
 
     function mathTypeParser(mathML: string) {
+        if (typeof mathML !== "string") {
+            throw new Error(`[Bluebook] mathTypeParser expected a string but received ${typeof mathML}.`);
+        }
         try {
             const parser = new DOMParser();
             const doc = parser.parseFromString(mathML, "text/html");
@@ -181,71 +249,127 @@
                 mrow.appendChild(moClose);
 
                 // Replace mfenced with mrow
-                mfenced.parentNode.replaceChild(mrow, mfenced);
+                mfenced.parentNode?.replaceChild(mrow, mfenced);
             });
 
             return new XMLSerializer().serializeToString(doc.documentElement);
-        } catch {
+        } catch (error) {
+            errorBluebook("mathTypeParser failed; falling back to raw markup.", {
+                error,
+                inputPreview: mathML.slice(0, 200),
+                inputLength: mathML.length,
+            });
             return mathML;
         }
     }
 
     async function onNextHandler() {
+        debugBluebook("primary navigation clicked", {
+            historyPresent: !!history,
+            total,
+            currentQuestionNumber,
+            currentQuestionNumberShow,
+            questionType: question?.type,
+            questionExternalId: question?.externalid,
+            selectedOption,
+            shown,
+            timeToExit,
+        });
         if (history) {
+            debugBluebook("history mode: exiting review");
             history.exit();
         } else if (total !== null && currentQuestionNumber === -1) {
+            debugBluebook("overview mode: submitting current answer before advancing");
             await submitHandler();
         } else if (total !== null) {
+            debugBluebook("timed session with total questions: advancing to next question");
             await nextQuestionHandler();
         } else {
             if (!shown) {
+                debugBluebook("submitting current question for immediate reveal");
                 let val = await submitHandler();
-                let correct: boolean, max: number | null;
-                if (val) {
-                    [correct, max] = val;
+                if (!val) {
+                    throw Error("[Bluebook] Unable to submit question because submitHandler returned a falsy value.");
                 }
+
+                let [correct, max] = val;
                 maxTries = max;
                 if (correct) {
                     if (question.type === "mcq") {
-                        isCorrect = question.answerOptions[selectedOption].id;
+                        const selectedAnswer = question.answerOptions[selectedOption as number];
+                        if (!selectedAnswer) {
+                            throw new Error(`[Bluebook] Selected option ${selectedOption} does not exist in answerOptions.`);
+                        }
+                        isCorrect = selectedAnswer.id;
                     } else {
-                        isCorrect = selectedOption.toString();
+                        if (selectedOption === undefined || selectedOption === null) {
+                            throw new Error("[Bluebook] Cannot mark the question correct because selectedOption is missing.");
+                        }
+                        isCorrect = (selectedOption as string).toString();
                     }
                     if (max === -1) {
                         timeToExit = true;
+                        debugBluebook("session will exit after this question because max tries were exhausted.");
                     }
                     shown = true;
+                    debugBluebook("question marked correct and revealed", { isCorrect, maxTries, timeToExit });
                 } else {
-                    if (currentTries >= maxTries) {
+                    if (currentTries >= (maxTries as number)) {
                         if (question.type === "mcq") {
-                            isWrong = question.answerOptions[selectedOption].id;
+                            const selectedAnswer = question.answerOptions[selectedOption as number];
+                            if (!selectedAnswer) {
+                                throw new Error(`[Bluebook] Selected option ${selectedOption} does not exist in answerOptions.`);
+                            }
+                            isWrong = selectedAnswer.id;
                             isCorrect = question.keys[0];
                         } else {
-                            isWrong = selectedOption.toString();
+                            if (selectedOption === undefined || selectedOption === null) {
+                                throw new Error("[Bluebook] Cannot mark the question wrong because selectedOption is missing.");
+                            }
+                            isWrong = (selectedOption as string).toString();
                             isCorrect = null;
                         }
                         shown = true;
+                        debugBluebook("question revealed after exhausting attempts", { isWrong, isCorrect, currentTries, maxTries });
                     } else {
                         currentTries++;
-                        await alert("Incorrect answer", `You have ${maxTries - currentTries + 1} ${max - currentTries + 1 === 1 ? "try" : "tries"} remaining.`);
+                        debugBluebook("answer was incorrect, showing retry alert", { currentTries, maxTries, selectedOption });
+                        await alert("Incorrect answer", `You have ${maxTries as number - currentTries + 1} ${max as number - currentTries + 1 === 1 ? "try" : "tries"} remaining.`);
                     }
                 }
                 oldHideTimer = hideTimer;
                 hideTimer = false;
+                debugBluebook("timer visibility reset after submit", { oldHideTimer, hideTimer });
             } else if (timeToExit) {
+                debugBluebook("timeToExit is true; exiting the session now.");
                 await exitHandler();
             } else {
+                debugBluebook("advancing to the next question after review state.");
                 await nextQuestionHandler();
                 shown = false;
                 isCorrect = null;
                 isWrong = null;
                 hideTimer = oldHideTimer;
+                debugBluebook("question state reset after advancing", { shown, isCorrect, isWrong, hideTimer });
             }
         }
     }
 </script>
 
-<svelte:window onmouseupcapture={onselection} ontouchendcapture={onselection} onclick={() => (showOverviewPrompt = false)} />
+<svelte:window
+    onmouseupcapture={onselection}
+    ontouchendcapture={onselection}
+    onclick={(event) => {
+        if (showOverviewPrompt) {
+            const target = event.target as HTMLElement | null;
+            debugBluebook("window click closed overview prompt", {
+                targetTag: target?.tagName,
+                targetClass: target?.className,
+            });
+        }
+        showOverviewPrompt = false;
+    }}
+/>
 
 <div data-dummy class="bg-yellow-500/50 hover:bg-yellow-500 cursor-pointer sr-only math-container"></div>
 
@@ -255,11 +379,14 @@
             <div class="text-2xl font-bold">Questions and Answers</div>
             <div class="">Directions</div>
         </div>
-        <div class="text-center absolute right-1/2 translate-x-1/2 gap-2 flex flex-col">
+            <div class="text-center absolute right-1/2 translate-x-1/2 gap-2 flex flex-col">
             <div class="text-2xl font-semibold">
                 {!hideTimer ? timer : "_"}
             </div>
-            <button onclick={() => (hideTimer = !hideTimer)} class="select-none cursor-pointer rounded-full px-3 font-bold text-sm border-1 border-black"> Hide </button>
+                <button onclick={() => {
+                    debugBluebook("hide timer toggled", { before: hideTimer });
+                    hideTimer = !hideTimer;
+                }} class="select-none cursor-pointer rounded-full px-3 font-bold text-sm border-1 border-black"> Hide </button>
         </div>
         <div class="text-right flex flex-col items-end gap-1">
             <div class="text-xs font-bold">
@@ -267,11 +394,14 @@
             </div>
             <div class="flex-1 flex items-center justify-center flex-row gap-3">
                 {#if !history}
-                    <button onclick={() => (enableAnnotation = !enableAnnotation)} class="cursor-pointer flex flex-col items-center justify-center text-sm">
+                    <button onclick={() => {
+                        debugBluebook("annotation mode toggled", { before: enableAnnotation });
+                        enableAnnotation = !enableAnnotation;
+                    }} class="cursor-pointer flex flex-col items-center justify-center text-sm">
                         <img src={stylus} alt="pencil" class="invert w-6 h-6" />
-                        <span class={enableAnnotation && "underline"}>Annotate</span>
+                        <span class={`${enableAnnotation && "underline"}`}>Annotate</span>
                     </button>
-                    <Dropdown ignoreStyling direction="right" items={["Stop and Exit"]} onselect={(i) => i === 0 && exitHandler()}>
+                    <Dropdown ignoreStyling direction="right" items={["Stop and Exit"]} onselect={(i: number) => i === 0 && exitHandler()}>
                         <span class="flex! flex-col! items-center justify-center text-sm cursor-pointer">
                             <img src={more} alt="pencil" class="invert w-6 h-6" />
                             <span>More</span>
@@ -299,7 +429,10 @@
                             {/if}
                         </div>
                         <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
-                            <button onclick={() => (questionShouldBeReviewed = !questionShouldBeReviewed)} class="cursor-pointer text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-not-allowed'}">
+                            <button onclick={() => {
+                                debugBluebook("mark-for-review toggled", { before: questionShouldBeReviewed });
+                                questionShouldBeReviewed = !questionShouldBeReviewed;
+                            }} class="cursor-pointer text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-not-allowed'}">
                                 {#if questionShouldBeReviewed}
                                     <img src={bookmarked} alt="boomarkable" />
                                 {:else}
@@ -307,7 +440,10 @@
                                 {/if}
                                 <span> Mark for Review </span>
                             </button>
-                            <button onclick={() => (enableStriking = !enableStriking)} class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking && '!bg-blue-800 text-white'} border-black border-2 rounded-md"> ABC </button>
+                            <button onclick={() => {
+                                debugBluebook("striking mode toggled", { before: enableStriking });
+                                enableStriking = !enableStriking;
+                            }} class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking && '!bg-blue-800 text-white'} border-black border-2 rounded-md"> ABC </button>
                         </div>
                     </div>
                     <div class="py-3 highlightable-portion">
@@ -318,7 +454,12 @@
                             {#each question.answerOptions as { id, content }, i}
                                 <div class="flex flex-row">
                                     <button
-                                        onclick={() => !history && (!enableStriking || !eliminated[id]) && (selectedOption = i)}
+                                        onclick={() => {
+                                            debugBluebook("answer option clicked", { optionIndex: i, optionId: id, historyPresent: !!history, enableStriking, eliminated: !!eliminated[id] });
+                                            if (!history && (!enableStriking || !eliminated[id])) {
+                                                selectedOption = i;
+                                            }
+                                        }}
                                         class="flex flex-row items-center w-full relative {eliminated[id] && enableStriking && 'before:-ml-4 before:border-1 before:w-full opacity-50 !cursor-not-allowed before:top-1/2 before:-translate-y-1/2 before:absolute'}
                                 py-3 px-4 border-2 border-neutral-500 gap-5
                                 rounded-lg cursor-pointer hover:bg-blue-300/50 {selectedOption === i && '!bg-blue-800 text-white'}
@@ -333,7 +474,10 @@
                                     </button>
                                     {#if enableStriking}
                                         <button
-                                            onclick={() => (eliminated[id] = !eliminated[id])}
+                                            onclick={() => {
+                                                debugBluebook("strike toggle clicked", { optionIndex: i, optionId: id, before: eliminated[id] });
+                                                eliminated[id] = !eliminated[id];
+                                            }}
                                             class="flex flex-row items-center justify-center w-16
                                     rounded-lg cursor-pointer group"
                                         >
@@ -347,7 +491,7 @@
                         {:else}
                             <div class="flex flex-row items-center gap-2">
                                 <div class="border-2 rounded-2xl w-24 p-2 font-mono">
-                                    <input disabled={shown} type="text" class="p-2 w-full border-b-2" bind:value={selectedOption} />
+                                        <input disabled={shown} type="text" class="p-2 w-full border-b-2" bind:value={selectedOption} oninput={() => debugBluebook("short-answer input changed", { selectedOption })} />
                                 </div>
                                 {#if shown}
                                     {#if isCorrect === selectedOption}
@@ -374,9 +518,9 @@
                                 {/if}
                             </div>
                             <div class="p-2 bg-blue-100 rounded-2xl mb-2">
-                                This was a{["A", "E", "I", "O", "U"].includes(questionOutside.primary_class_cd_desc.at(0)) ? "n" : ""}
+                                This was a{["A", "E", "I", "O", "U"].includes(questionOutside.primary_class_cd_desc.at(0) ?? "") ? "n" : ""}
                                 <b>{questionOutside.primary_class_cd_desc}: {questionOutside.skill_desc}</b>
-                                question with a{["A", "E", "I", "O", "U"].includes(questionOutside.difficulty.at(0)) ? "n" : ""}
+                                question with a{["A", "E", "I", "O", "U"].includes(questionOutside.difficulty.at(0) ?? "") ? "n" : ""}
                                 <b>{questionOutside.difficulty === "E" ? "easy" : questionOutside.difficulty === "M" ? "medium" : "hard"}</b>
                                 difficulty (CB level of
                                 <b>{questionOutside.score_band_range_cd}</b>)
@@ -386,6 +530,7 @@
                                     class="flex-1 mb-2 cursor-pointer p-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 transition-all rounded-2xl"
                                     resetStyling
                                     onclick={() => {
+                                        debugBluebook("copy-question button clicked", { questionExternalId: question?.externalid, questionType: question?.type });
                                         navigator.clipboard.writeText(
                                             (question.type === "mcq" && question.stimulus ? `Context: ${question.stimulus}\n` : "") +
                                                 `Question: ${question.stem}` +
@@ -411,6 +556,7 @@
                                     class="flex-1 mb-2 cursor-pointer p-2 bg-blue-100 hover:bg-blue-200 active:bg-blue-300 transition-all rounded-2xl"
                                     resetStyling
                                     onclick={() => {
+                                        debugBluebook("share-question button clicked", { questionExternalId: question?.externalid, questionType: question?.type });
                                         if (
                                             navigator.canShare &&
                                             navigator.canShare({
@@ -464,9 +610,10 @@
                     {@render miniOverviewSnippet?.()}
                 </div>
             {/if}
-            <button
+                <button
                 onclick={(e) => {
                     e.stopPropagation();
+                    debugBluebook("overview button clicked", { total, showOverviewPrompt, currentQuestionNumber, currentQuestionNumberShow });
                     if (total) showOverviewPrompt = !showOverviewPrompt;
                 }}
                 class="{total && 'cursor-pointer'} bg-gray-950 text-white py-2 px-4 rounded-md font-bold flex flex-row items-center justify-center"

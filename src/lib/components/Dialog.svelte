@@ -3,6 +3,9 @@
     import Dialog from "./Dialog.svelte"
     import Input from "$lib/components/Input.svelte";
 
+    const debugDialog = (...args: unknown[]) => console.debug("[Dialog]", ...args);
+    const errorDialog = (...args: unknown[]) => console.error("[Dialog]", ...args);
+
     async function never(promise: Promise<any>) {
         let run = true;
         while (run) {
@@ -11,11 +14,10 @@
         }
     }
 
-    export const alert = async (title: string, description: string, children = null) => {
-        let state;
-        const result = new Promise(resolve => state = resolve);
-        let close;
-        const manual = new Promise(resolve => close = resolve);
+    export const alert = async (title: string, description: string, children: any = null) => {
+        debugDialog("alert() called", { title, descriptionLength: description?.length ?? 0, hasChildren: !!children });
+        let state: (value: boolean) => void;
+        const result = new Promise<boolean>(resolve => state = resolve);
 
         let element = document.createElement("div");
         document.body.appendChild(element);
@@ -28,7 +30,7 @@
             actions: [{
                 name: "OK",
                 action: async () => {
-                    await state(true);
+                    state(true);
                 },
                 primary: true
             }],
@@ -42,22 +44,27 @@
             props
         })
 
+        debugDialog("alert() mounted dialog", { title });
+
         props.open = true
 
-        let value = [await result];
+        const value: [boolean] = [await result];
         props.open = false;
+        debugDialog("alert() closing dialog", { title, value });
         setTimeout(async () => {
             await unmount(dialog);
             element.remove();
+            debugDialog("alert() dialog removed", { title });
         }, 400)
         return value;
     }
 
-    export const confirm = async (title, description, children = null, isSnippet = false, manualclose = false) => {
-        let state;
-        const result = new Promise(resolve => state = resolve);
-        let close;
-        const manual = new Promise(resolve => close = resolve);
+    export const confirm = async (title: string, description: string, children: any = null, isSnippet: boolean = false, manualclose: boolean = false) => {
+        debugDialog("confirm() called", { title, descriptionLength: description?.length ?? 0, isSnippet, manualclose, hasChildren: !!children });
+        let state: (value: boolean) => void;
+        const result = new Promise<boolean>(resolve => state = resolve);
+        let close!: () => void;
+        const manual = new Promise<void>(resolve => close = resolve);
 
         let element = document.createElement("div");
         document.body.appendChild(element);
@@ -93,9 +100,12 @@
             props
         })
 
+        debugDialog("confirm() mounted dialog", { title });
+
         props.open = true
 
-        let value = await result;
+        const confirmed = await result;
+        let value: [boolean] | [boolean, () => void] = [confirmed];
         if (manualclose) {
             manual.then(() => {
                 props.open = false;
@@ -104,23 +114,25 @@
                     element.remove();
                 }, 400)
             })
-            value = [value, close]
+            value = [confirmed, close]
         } else {
             props.open = false;
             setTimeout(async () => {
                 await unmount(dialog);
                 element.remove();
             }, 400)
-            value = [value]
+            value = [confirmed]
         }
+        debugDialog("confirm() resolved", { title, value, manualclose });
         return value;
     }
 
-    export const wait = async (promise: any, title: string, description = "", children = null, showFail = false) => {
-        let state: any;
-        const result = new Promise(resolve => state = resolve);
-        let close: any;
-        const manual = new Promise(resolve => close = resolve);
+    export const wait = async (promise: any, title: string, description: string = "", children: any = null, showFail: boolean = false) => {
+        debugDialog("wait() called", { title, descriptionLength: description?.length ?? 0, showFail, hasCancel: !!promise?.cancel });
+        let state: (value: boolean) => void;
+        const result = new Promise<boolean>(resolve => state = resolve);
+        let close!: () => void;
+        const manual = new Promise<void>(resolve => close = resolve);
 
         let element = document.createElement("div");
         document.body.appendChild(element);
@@ -149,9 +161,12 @@
             props
         })
 
+        debugDialog("wait() mounted dialog", { title });
+
         props.open = true
 
         promise.then(() => {
+            debugDialog("wait() promise resolved", { title });
             props.open = false;
             setTimeout(async () => {
                 await unmount(dialog);
@@ -160,6 +175,7 @@
         })
 
         promise.catch(() => {
+            errorDialog("wait() promise rejected", { title });
             props.open = false;
             setTimeout(async () => {
                 await unmount(dialog);
@@ -170,14 +186,16 @@
 
         promise.finally(() => state(true));
 
-        return [await result, close];
+        debugDialog("wait() awaiting completion", { title });
+        return [await result, close] as [boolean, () => void];
     }
 
-    export const prompt = async (title, description, children, isSnippet, manualclose) => {
-        let state;
-        const result = new Promise(resolve => state = resolve);
-        let close;
-        const manual = new Promise(resolve => close = resolve);
+    export const prompt = async (title: string, description: string, children: any, isSnippet: boolean, manualclose: boolean) => {
+        debugDialog("prompt() called", { title, descriptionLength: description?.length ?? 0, isSnippet, manualclose, hasChildren: !!children });
+        let state: (value: string | null) => void;
+        const result = new Promise<string | null>(resolve => state = resolve);
+        let close!: () => void;
+        const manual = new Promise<void>(resolve => close = resolve);
 
         let element = document.createElement("div");
         document.body.appendChild(element);
@@ -215,7 +233,7 @@
                         props: inputProps,
                     })
                     return () => {
-                        unmount(comp);
+                        void unmount(comp);
                     }
                 }
             }))
@@ -226,9 +244,12 @@
             props
         })
 
+        debugDialog("prompt() mounted dialog", { title });
+
         props.open = true
 
-        let value = [await result];
+        const promptValue = await result;
+        let value: [string | null] | [string | null, () => void] = [promptValue];
         if (manualclose) {
             manual.then(() => {
                 props.open = false;
@@ -237,7 +258,7 @@
                     element.remove();
                 }, 400)
             })
-            value = [value, close]
+            value = [promptValue, close]
         } else {
             props.open = false;
             setTimeout(async () => {
@@ -245,6 +266,7 @@
                 element.remove();
             }, 400)
         }
+        debugDialog("prompt() resolved", { title, value, manualclose });
         return value;
     }
 
@@ -263,13 +285,19 @@
     let id = crypto.randomUUID();
 
     onMount(() => {
+        console.debug("[Dialog] mounted component", { title, id, open, loading, actions: actions?.length ?? 0 });
         close = id;
     })
 
     $effect(() => {
         if (close !== id) {
+            console.warn("[Dialog] close token mismatch; forcing dialog closed", { title, id, close, open });
             closeF();
         }
+    })
+
+    $effect(() => {
+        console.debug("[Dialog] state snapshot", { title, id, open, loading, actions: actions?.length ?? 0 });
     })
 </script>
 
@@ -300,7 +328,14 @@
                 <div class="px-6 pb-4 pt-4 flex justify-end gap-2">
                     {#each actions as {name, action, primary, close}}
                         <Button transparent={!primary}
-                                onclick={!close ? action : async () => { await action(); closeF(); }}>
+                                onclick={!close ? async () => {
+                                    console.debug("[Dialog] action clicked", { title, id, name, close: !!close, primary: !!primary });
+                                    await action();
+                                } : async () => {
+                                    console.debug("[Dialog] closing action clicked", { title, id, name, primary: !!primary });
+                                    await action();
+                                    closeF();
+                                }}>
                             {name}
                         </Button>
                     {/each}
