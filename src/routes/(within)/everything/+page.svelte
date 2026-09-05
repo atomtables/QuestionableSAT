@@ -127,8 +127,19 @@
     async function randomQuestion() {
         stopTimer(); // Save current time
         currentQuestionIndex = Math.floor(Math.random() * selectedSkillQuestions.length);
+        currentQuestion = null;
         await loadCurrentQuestion();
         startTimer(); // Start timer for new question
+    }
+
+    async function nextQuestionWithReset() {
+        currentQuestion = null;
+        await nextQuestion();
+    }
+
+    async function previousQuestionWithReset() {
+        currentQuestion = null;
+        await previousQuestion();
     }
 
     async function exitQuestionViewer() {
@@ -350,8 +361,8 @@
                     Question {currentQuestionIndex + 1} of {selectedSkillQuestions.length}
                 </span>
                 <div class="flex items-center gap-2">
-                    <button onclick={previousQuestion} disabled={currentQuestionIndex === 0} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> &lt; Previous </button>
-                    <button onclick={nextQuestion} disabled={currentQuestionIndex === selectedSkillQuestions.length - 1} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> Next &gt; </button>
+                    <button onclick={previousQuestionWithReset} disabled={currentQuestionIndex === 0} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> &lt; Previous </button>
+                    <button onclick={nextQuestionWithReset} disabled={currentQuestionIndex === selectedSkillQuestions.length - 1} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> Next &gt; </button>
                     <button onclick={randomQuestion} class="cursor-pointer underline opacity-75 hover:opacity-100 rounded-lg transition-colors text-white font-medium"> Random </button>
                 </div>
             </div>
