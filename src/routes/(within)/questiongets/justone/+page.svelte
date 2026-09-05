@@ -4,14 +4,10 @@
     import { goto } from "$app/navigation";
     import Bluebook from "$lib/components/platformspecific/Bluebook.svelte";
     import Dialog from "$lib/components/Dialog.svelte";
-    import { isQuestionArray, type LookupData, type Question, type QuestionDetail, type QuestionDetailMCQ } from "$lib/types/types";
+    import { type LookupData, type Question, type QuestionDetail } from "$lib/types/types";
     import { alert } from "$lib/components/Dialog.svelte";
-    import { questions, selectedDetails } from "$lib/clientstate/states.svelte";
-    import Input from "$lib/components/Input.svelte";
-    import Button from "$lib/components/Button.svelte";
+    import { questions } from "$lib/clientstate/states.svelte";
     import { slide } from "svelte/transition";
-    import Spinner from "$lib/components/Spinner.svelte";
-    import { loadMCQQuestionThroughJSON } from "$lib/helpers/loadjson";
     import { loadQuestion } from "$lib/helpers/loadend";
 
     const debugJustOne = (...args: unknown[]) => console.debug("[questiongets/justone]", ...args);
@@ -26,31 +22,20 @@
         };
     } = $props();
 
-    let questionID: string = $state();
-    let params: string = $state();
-    let timerInt: number = $state();
-    let timer: string = $state();
-    let timerHandler: number = $state();
+    let questionID = $state("");
+    let params = $state("");
+    let timer = $state("");
+    let timerHandler = $state<number | undefined>(undefined);
 
     let currentQuestionNumber: number = $state(1);
     let currentQuestionNumberIndex: number = $state(0);
-    let currentQuestion: QuestionDetail = $state();
-    let currentQuestionOutside: Question = $state();
-    let selectedOption: number = $state();
-
-    let currentQuestionHistory: [
-        QuestionDetail,
-        Question,
-        {
-            correct: boolean;
-            selected: string;
-            timeInt: number;
-        },
-    ][] = $state([]);
+    let currentQuestion = $state<QuestionDetail | undefined>(undefined);
+    let currentQuestionOutside = $state<Question>({} as Question);
+    let selectedOption = $state<number | undefined>(undefined);
 
     async function getNextQuestion() {
         debugJustOne("getNextQuestion() invoked; redirecting out of single-question flow.");
-        exit();
+        await exit();
     }
     async function submitHandler(): Promise<[boolean, number]> {
         debugJustOne("submitHandler() invoked", {
@@ -66,7 +51,7 @@
         }
         let seenInSessions: string[];
         try {
-            seenInSessions = JSON.parse(localStorage.getItem("seen"));
+            seenInSessions = JSON.parse(localStorage.getItem("seen") ?? "[]");
         } catch {
             seenInSessions = [];
             console.warn("seenInSessions wasn't set to a value parsable by JSON... resetting.");
@@ -93,14 +78,14 @@
     onMount(async () => {
         const urlParams = new URLSearchParams(window.location.search);
         debugJustOne("onMount() URL parameters", Object.fromEntries(urlParams.entries()));
-        questionID = urlParams.get("start");
-        params = urlParams.get("jsonparams");
+        questionID = urlParams.get("start") ?? "";
+        params = urlParams.get("jsonparams") ?? "";
 
         if (!questionID) {
             errorJustOne("Missing questionID in URL; redirecting to topics.");
-            goto("/topics").then(() => {
-                alert("Error", "This question link is invalid. Please request the person who sent you the link to send you a valid link.");
-            });
+            await goto("/topics");
+            await alert("Error", "This question link is invalid. Please request the person who sent you the link to send you a valid link.");
+            return;
         }
         try {
             let qs = await questions[0];
@@ -110,9 +95,9 @@
             // console.log(currentQuestionOutside, questionID);
             if (!currentQuestionOutside) {
                 errorJustOne("Question ID was not found in the resolved bank.", { questionID });
-                goto("/topics").then(() => {
-                    alert("Error", "This question link is invalid. Please request the person who sent you the link to send you a valid link.");
-                });
+                await goto("/topics");
+                await alert("Error", "This question link is invalid. Please request the person who sent you the link to send you a valid link.");
+                return;
             }
             currentQuestion = await loadQuestion(currentQuestionOutside);
             debugJustOne("Question detail loaded", {
@@ -122,9 +107,9 @@
             });
             if (!currentQuestion || !currentQuestionOutside) {
                 errorJustOne("Loaded question detail was missing after loadQuestion.", { questionID, currentQuestion, currentQuestionOutside });
-                goto("/topics").then(() => {
-                    alert("Error", "This question link is invalid. Please request the person who sent you the link to send you a valid link.");
-                });
+                await goto("/topics");
+                await alert("Error", "This question link is invalid. Please request the person who sent you the link to send you a valid link.");
+                return;
             }
         } catch (e) {
             errorJustOne("Unexpected error while preparing the single question page.", { error: e, questionID, params });
@@ -135,10 +120,6 @@
         clearInterval(timerHandler);
     });
 
-    let currentlyReviewing = $state(null);
-    let currentlyReviewed = $derived(currentlyReviewing !== null && currentlyReviewing + 1);
-    let currentlyTimered = $derived(`${Math.floor(currentQuestionHistory[currentlyReviewing][2].timeInt / 60)}:${currentQuestionHistory[currentlyReviewing][2].timeInt % 60 < 10 ? "0" + (currentQuestionHistory[currentlyReviewing][2].timeInt % 60).toString() : (currentQuestionHistory[currentlyReviewing][2].timeInt % 60).toString()}`);
-    let currentlySelectedHistory = $derived(currentQuestionHistory[currentlyReviewing][0].type === "mcq" ? (currentQuestionHistory[currentlyReviewing][0] as QuestionDetailMCQ).answerOptions.findIndex((v) => v.id === currentQuestionHistory[currentlyReviewing][2].selected) : currentQuestionHistory[currentlyReviewing][2].selected);
 </script>
 
 {#if currentQuestion}
@@ -157,7 +138,7 @@
             status={null}
             questionShouldBeReviewed={null}
             bind:currentQuestionNumber={currentQuestionNumberIndex}
-            previousQuestionHandler={() => null}
+            previousQuestionHandler={async () => {}}
         />
     </div>
 {:else}
