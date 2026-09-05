@@ -561,14 +561,14 @@
                                         if (
                                             navigator.canShare &&
                                             navigator.canShare({
-                                                url: page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params,
+                                                url: encodeURI("https://" + page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params),
                                             })
                                         ) {
                                             navigator.share({
-                                                url: page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params,
+                                                url: encodeURI("https://" + page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params),
                                             });
                                         } else {
-                                            navigator.clipboard.writeText(page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params);
+                                            navigator.clipboard.writeText(encodeURI("https://" + page.url.hostname + "/questiongets/justone?start=" + question.externalid + "&jsonparams=" + params.params));
                                             copied2 = true;
                                             setTimeout(() => {
                                                 copied2 = false;
