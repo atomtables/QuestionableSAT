@@ -413,16 +413,41 @@
         </div>
     </div>
     <hr />
-    <div class="flex-1 flex flex-col lg:flex-row flex-nowrap px-15 overflow-y-auto">
+    <div class="flex-1 flex flex-col lg:flex-row max-lg:overflow-y-scroll flex-nowrap px-15 overflow-y-auto">
         {#if currentQuestionNumber !== -1}
+            <div class="pt-5 flex lg:hidden flex-row font-sans items-center justify-center border-b-2">
+                <div class="px-2 h-8 bg-black text-white flex items-center justify-center gap-2">
+                    {currentQuestionNumberShow}
+                    {#if isQuestionSeen}
+                        <img src={seen} alt="Previously seen" class="w-4 h-4 invert" />
+                    {/if}
+                </div>
+                <div class="flex-1 bg-neutral-200 h-8 flex flex-row items-center justify-between pl-3 pr-1">
+                    <button onclick={() => {
+                                debugBluebook("mark-for-review toggled", { before: questionShouldBeReviewed });
+                                questionShouldBeReviewed = !questionShouldBeReviewed;
+                            }} class="cursor-pointer text-sm text-neutral-800 flex flex-row gap-1 items-center justify-center {!total && 'opacity-50 cursor-not-allowed'}">
+                        {#if questionShouldBeReviewed}
+                            <img src={bookmarked} alt="boomarkable" />
+                        {:else}
+                            <img src={bookmarkable} alt="boomarkable" />
+                        {/if}
+                        <span> Mark for Review </span>
+                    </button>
+                    <button onclick={() => {
+                                debugBluebook("striking mode toggled", { before: enableStriking });
+                                enableStriking = !enableStriking;
+                            }} class="cursor-pointer p-0.5 text-xs line-through font-bold transition-colors bg-white {enableStriking && '!bg-blue-800 text-white'} border-black border-2 rounded-md"> ABC </button>
+                </div>
+            </div>
             {#if question.type === "mcq" && question.stimulus}
-                <section class="lg:flex-1 lg:pr-15 highlightable-portion py-15 overflow-y-auto flex flex-col items-center *:w-full gap-2">
+                <section class="lg:flex-1 lg:pr-15 highlightable-portion py-5 lg:py-15 lg:overflow-y-auto flex flex-col items-center *:w-full gap-2">
                     {@html question.stimulus}
                 </section>
             {/if}
-            <section class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} overflow-y-auto py-15 flex-1">
+            <section class="{!(question.type === 'mcq' && question.stimulus) ? 'max-w-160 min-w-160 mx-auto' : 'lg:pl-15 border-t-2 lg:border-t-0 lg:border-l-2'} lg:overflow-y-auto py-5 lg:py-15 flex-1">
                 <div class="flex flex-col flex-nowrap">
-                    <div class="flex flex-row font-sans items-center justify-center border-b-2">
+                    <div class="hidden lg:flex flex-row font-sans items-center justify-center border-b-2">
                         <div class="px-2 h-8 bg-black text-white flex items-center justify-center gap-2">
                             {currentQuestionNumberShow}
                             {#if isQuestionSeen}
