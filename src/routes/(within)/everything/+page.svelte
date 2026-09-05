@@ -156,7 +156,24 @@
         if (timerInterval) clearInterval(timerInterval);
         seenInSessions.push(currentQuestion.externalid);
         localStorage.setItem("seen", JSON.stringify(seenInSessions));
-        if (selectedOption && (currentQuestion.type === "mcq" ? currentQuestion.keys.includes(currentQuestion.answerOptions[selectedOption as number].id) : currentQuestion.keys.includes(selectedOption.toString()))) {
+        if (currentQuestion.type === "mcq") {
+            if (selectedOption === undefined || selectedOption === null) {
+                return [false, 0];
+            }
+
+            const selectedAnswer = currentQuestion.answerOptions[selectedOption as number];
+            if (!selectedAnswer) {
+                throw new Error(`Selected option ${selectedOption} does not exist for the current question.`);
+            }
+
+            if (currentQuestion.keys.includes(selectedAnswer.id)) {
+                return [true, 0];
+            }
+
+            return [false, 0];
+        }
+
+        if (selectedOption !== undefined && selectedOption !== null && currentQuestion.keys.includes(selectedOption.toString())) {
             return [true, 0];
         } else {
             return [false, 0];
