@@ -99,6 +99,7 @@
         if (question) {
             eliminated = {};
             currentTries = 0;
+            shown = false;
         }
     });
 

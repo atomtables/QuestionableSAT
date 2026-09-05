@@ -98,11 +98,14 @@
         startTimer();
     }
 
+    let currentQuestionShow = $state(0);
+
     async function loadCurrentQuestion() {
         if (selectedSkillQuestions.length > 0) {
             const question = selectedSkillQuestions[currentQuestionIndex];
             currentQuestion = await loadQuestion(question);
             selectedOption = undefined;
+            currentQuestionShow = currentQuestionIndex + 1;
         }
     }
 
@@ -127,19 +130,8 @@
     async function randomQuestion() {
         stopTimer(); // Save current time
         currentQuestionIndex = Math.floor(Math.random() * selectedSkillQuestions.length);
-        currentQuestion = null;
         await loadCurrentQuestion();
         startTimer(); // Start timer for new question
-    }
-
-    async function nextQuestionWithReset() {
-        currentQuestion = null;
-        await nextQuestion();
-    }
-
-    async function previousQuestionWithReset() {
-        currentQuestion = null;
-        await previousQuestion();
     }
 
     async function exitQuestionViewer() {
@@ -358,11 +350,11 @@
 
             <div class="flex items-center gap-4">
                 <span class="text-gray-300 text-sm">
-                    Question {currentQuestionIndex + 1} of {selectedSkillQuestions.length}
+                    Question {currentQuestionShow} of {selectedSkillQuestions.length}
                 </span>
                 <div class="flex items-center gap-2">
-                    <button onclick={previousQuestionWithReset} disabled={currentQuestionIndex === 0} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> &lt; Previous </button>
-                    <button onclick={nextQuestionWithReset} disabled={currentQuestionIndex === selectedSkillQuestions.length - 1} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> Next &gt; </button>
+                    <button onclick={previousQuestion} disabled={currentQuestionIndex === 0} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> &lt; Previous </button>
+                    <button onclick={nextQuestion} disabled={currentQuestionIndex === selectedSkillQuestions.length - 1} class="disabled:cursor-not-allowed cursor-pointer underline opacity-75 hover:opacity-100 disabled:opacity-50 rounded-lg transition-colors text-white font-medium"> Next &gt; </button>
                     <button onclick={randomQuestion} class="cursor-pointer underline opacity-75 hover:opacity-100 rounded-lg transition-colors text-white font-medium"> Random </button>
                 </div>
             </div>
@@ -377,7 +369,7 @@
             bind:selectedOption
             bind:timer
             currentQuestionNumber={currentQuestionIndex}
-            currentQuestionNumberShow={currentQuestionIndex + 1}
+            currentQuestionNumberShow={currentQuestionShow}
             total={null}
             {submitHandler}
             nextQuestionHandler={nextQuestion}
